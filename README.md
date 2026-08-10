@@ -48,15 +48,15 @@ VisionTV follows a clean **MVVM** architecture with a unidirectional data flow p
 
 ### 1. Configure TMDB API Key
 
-Open the following file:
-`app/src/main/java/com/visiontv/app/data/repository/TmdbRepository.kt`
+VisionTV uses `local.properties` to manage sensitive information securely.
 
-Find the `apiKey` variable and replace it with your own key:
-```kotlin
-private val apiKey = "YOUR_API_KEY_HERE"
-```
+1.  Open `local.properties` in the root of the project.
+2.  Add your TMDB **API Read Access Token** (JWT):
+    ```properties
+    TMDB_TOKEN="your_jwt_token_here"
+    ```
 
-> ℹ️ Get a free API key at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
+> ℹ️ Get your token at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) under the "API Read Access Token" section.
 
 ### 2. Build & run
 
@@ -78,7 +78,7 @@ Run the project on an **Android TV emulator** or physical device for the best ex
 ## 📄 License
 
 ```
-Copyright (c) 2025 IgnaColla
+Copyright (c) 2026 IgnaColla
 
 This project is provided for personal, non-commercial use only.
 Commercial use, redistribution for profit, or use in any product or service
