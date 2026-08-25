@@ -1,9 +1,10 @@
 package com.visiontv.app.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +21,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +42,8 @@ import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.visiontv.app.data.model.Movie
 
+import java.util.Locale
+
 private val CardBg = Color(0xFF1C1C1E)
 private val CardBorderFocused = Color.White
 private val CardBorderUnfocused = Color(0xFF2C2C2E)
@@ -50,6 +52,7 @@ private val TextMuted = Color(0xFF8E8E93)
 private val FavColor = Color(0xFFFF3B30)
 private val RatingGold = Color(0xFFFFD700)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MovieCard(
     movie: Movie,
@@ -58,7 +61,7 @@ fun MovieCard(
     modifier: Modifier = Modifier,
     onToggleFavorite: ((Movie) -> Unit)? = null,
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(value = false) }
     val scale by animateFloatAsState(if (isFocused) 1.05f else 1.0f, label = "scale")
 
     Box(
@@ -74,7 +77,10 @@ fun MovieCard(
                 color = if (isFocused) CardBorderFocused else CardBorderUnfocused,
                 shape = RoundedCornerShape(8.dp),
             )
-            .clickable { onClick(movie) },
+            .combinedClickable(
+                onClick = { onClick(movie) },
+                onLongClick = { onToggleFavorite?.invoke(movie) },
+            ),
     ) {
         AsyncImage(
             model = movie.posterUrl ?: movie.streamUrl, // fallback to something if no poster
@@ -90,8 +96,8 @@ fun MovieCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f)),
-                        startY = 300f
-                    )
+                        startY = 300f,
+                    ),
                 )
         )
 
@@ -107,14 +113,17 @@ fun MovieCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 if (onToggleFavorite != null) {
-                    IconButton(
-                        onClick = { onToggleFavorite(movie) },
-                        modifier = Modifier.size(28.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Color.Black.copy(alpha = 0.4f)),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                             contentDescription = "Favorite",
-                            tint = if (isFavorite) FavColor else Color.White.copy(alpha = 0.6f),
+                            tint = if (isFavorite) FavColor else Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -123,6 +132,15 @@ fun MovieCard(
 
             // Details at bottom
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (isFocused && (onToggleFavorite != null)) {
+                    Text(
+                        text = "Hold to Favorite",
+                        fontSize = 9.sp,
+                        color = FavColor,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                }
                 Text(
                     text = movie.title,
                     fontSize = 12.sp,
@@ -137,7 +155,7 @@ fun MovieCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        if (movie.rating != null && movie.rating > 0) {
+                        if ((movie.rating != null) && (movie.rating > 0)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     imageVector = Icons.Filled.Star,
@@ -146,7 +164,7 @@ fun MovieCard(
                                     modifier = Modifier.size(10.dp)
                                 )
                                 Text(
-                                    text = String.format("%.1f", movie.rating),
+                                    text = String.format(Locale.US, "%.1f", movie.rating),
                                     fontSize = 10.sp,
                                     color = AccentWhite
                                 )

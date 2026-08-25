@@ -8,6 +8,7 @@ data class PlayerUiState(
     val errorMessage: String? = null,
     val isEnded: Boolean = false,
     val volume: Float = 1.0f,
+    val isFavorite: Boolean = false,
     val availableResolutions: List<VideoResolution> = emptyList(),
     val selectedResolution: VideoResolution? = null
 )

@@ -12,11 +12,13 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.visiontv.app.data.model.PlaybackItem
 import com.visiontv.app.data.model.PlaybackType
+import com.visiontv.app.util.PreferencesManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
@@ -26,6 +28,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val playerInfo = ExoPlayerFactory.create(application)
     private val exoPlayer: ExoPlayer = playerInfo.first
     private val headerFactory: HeaderDataSourceFactory = playerInfo.second
+    private val preferences = PreferencesManager(application)
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -67,6 +70,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         exoPlayer.addListener(listener)
+        observeFavorites()
+    }
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            preferences.favoritesFlow.collect { favorites ->
+                currentItem?.let { item ->
+                    _uiState.update { it.copy(isFavorite = favorites.contains(item.itemId)) }
+                }
+            }
+        }
     }
 
     fun getPlayer(): ExoPlayer = exoPlayer
@@ -75,6 +89,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun prepare(item: PlaybackItem) {
         currentItem = item
         _uiState.update { PlayerUiState(title = item.title) }
+
+        // Check favorite status immediately
+        viewModelScope.launch {
+            val favorites = preferences.favoritesFlow.first()
+            _uiState.update { it.copy(isFavorite = favorites.contains(item.itemId)) }
+        }
 
         // Apply headers to the factory so segments also get them
         headerFactory.setHeaders(item.headers)
@@ -92,6 +112,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         exoPlayer.setMediaItem(mediaItemBuilder.build())
         exoPlayer.prepare()
         exoPlayer.play()
+    }
+
+    fun toggleFavorite() {
+        val item = currentItem ?: return
+        viewModelScope.launch {
+            val favorites = preferences.favoritesFlow.first()
+            val updated = if (favorites.contains(item.itemId)) favorites - item.itemId
+            else favorites + item.itemId
+            preferences.saveFavorites(updated)
+        }
     }
 
     fun togglePlayPause() {

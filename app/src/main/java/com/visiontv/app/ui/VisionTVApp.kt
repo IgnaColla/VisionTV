@@ -16,6 +16,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.visiontv.app.ui.component.SideBar
+import com.visiontv.app.ui.screen.FavoritesScreen
+import com.visiontv.app.ui.screen.LogsScreen
 import com.visiontv.app.ui.screen.MoviesScreen
 import com.visiontv.app.ui.screen.SeriesScreen
 import com.visiontv.app.ui.screen.SettingsScreen
@@ -34,29 +36,30 @@ fun VisionTVApp() {
             Box(modifier = Modifier.width(80.dp).fillMaxHeight()) {
                 SideBar(
                     currentRoute = currentRoute ?: "tv",
-                    onNavigate = { route ->
-                        if (currentRoute != route) {
-                            navController.navigate(route) {
-                                popUpTo(navController.graph.startDestinationId) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
+                ) { route ->
+                    if (currentRoute != route) {
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
                             }
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     }
-                )
+                }
             }
 
             // Contenido principal
             Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 NavHost(
                     navController = navController,
-                    startDestination = "tv"
+                    startDestination = "tv",
                 ) {
                     composable("tv") { TvScreen() }
                     composable("movies") { MoviesScreen() }
                     composable("series") { SeriesScreen() }
+                    composable("favorites") { FavoritesScreen() }
+                    composable("logs") { LogsScreen() }
                     composable("settings") { SettingsScreen() }
                 }
             }

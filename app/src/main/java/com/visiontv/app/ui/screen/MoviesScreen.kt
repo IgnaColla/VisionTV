@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.visiontv.app.R
-import com.visiontv.app.data.model.Movie
 import com.visiontv.app.data.model.PlaybackItem
 import com.visiontv.app.data.model.PlaybackType
 import com.visiontv.app.ui.component.FeaturedHero
@@ -67,7 +66,8 @@ fun MoviesScreen(viewModel: MoviesViewModel = viewModel()) {
                 url = uiState.selectedMovie!!.streamUrl,
                 title = uiState.selectedMovie!!.title,
                 type = PlaybackType.MOVIE,
-                headers = uiState.selectedMovie!!.headers
+                itemId = uiState.selectedMovie!!.streamUrl,
+                headers = uiState.selectedMovie!!.headers,
             ),
             onClose = { viewModel.clearSelectedMovie() }
         )
@@ -265,7 +265,7 @@ fun MoviesScreen(viewModel: MoviesViewModel = viewModel()) {
                     ) {
                         // Hero Section
                         val featured = uiState.movies.find { it.backdropUrl != null }
-                        if (featured != null && uiState.searchQuery.isBlank() && uiState.activeCategory == "All") {
+                        if ((featured != null) && uiState.searchQuery.isBlank() && (uiState.activeCategory == "All")) {
                             item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                                 FeaturedHero(
                                     title = featured.title,
@@ -273,8 +273,7 @@ fun MoviesScreen(viewModel: MoviesViewModel = viewModel()) {
                                     rating = featured.rating,
                                     releaseDate = featured.releaseYear,
                                     overview = featured.overview,
-                                    onClick = { viewModel.selectMovie(featured) }
-                                )
+                                ) { viewModel.selectMovie(featured) }
                             }
                         }
 

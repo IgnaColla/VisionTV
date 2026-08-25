@@ -66,7 +66,8 @@ fun TvScreen(viewModel: TvViewModel = viewModel()) {
                 url = uiState.selectedChannel!!.url,
                 title = uiState.selectedChannel!!.name,
                 type = PlaybackType.LIVE_TV,
-                headers = uiState.selectedChannel!!.headers
+                itemId = uiState.selectedChannel!!.url,
+                headers = uiState.selectedChannel!!.headers,
             ),
             onClose = { viewModel.clearSelectedChannel() }
         )
@@ -236,8 +237,7 @@ fun TvScreen(viewModel: TvViewModel = viewModel()) {
                                 channel = channel,
                                 isFavorite = uiState.favorites.contains(channel.url),
                                 onClick = { viewModel.selectChannel(it) },
-                                onToggleFavorite = { viewModel.toggleFavorite(it) }
-                            )
+                            ) { viewModel.toggleFavorite(it) }
                         }
                     }
                 }
@@ -250,7 +250,7 @@ fun TvScreen(viewModel: TvViewModel = viewModel()) {
                     ) {
                         // Row 1: Argentina
                         val argentinaChannels = uiState.channels.filter { channel ->
-                            channel.country?.uppercase() == "AR" || 
+                            (channel.country?.uppercase() == "AR") || 
                             channel.name.contains("Argentina", ignoreCase = true) ||
                             channel.category.contains("Argentina", ignoreCase = true)
                         }

@@ -46,7 +46,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.visiontv.app.R
 import com.visiontv.app.data.model.PlaybackItem
 import com.visiontv.app.data.model.PlaybackType
-import com.visiontv.app.data.model.Series
 import com.visiontv.app.ui.component.EpisodePicker
 import com.visiontv.app.ui.component.FeaturedHero
 import com.visiontv.app.ui.component.SeriesCard
@@ -69,7 +68,7 @@ fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
     if (playingEpisode != null) {
         PlayerScreen(
             item = playingEpisode!!,
-            onClose = { playingEpisode = null }
+            onClose = { playingEpisode = null },
         )
         return
     }
@@ -265,7 +264,7 @@ fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
                         ) {
                             // Hero Section
                             val featured = uiState.series.find { it.backdropUrl != null }
-                            if (featured != null && uiState.searchQuery.isBlank() && uiState.activeCategory == "All") {
+                            if ((featured != null) && uiState.searchQuery.isBlank() && (uiState.activeCategory == "All")) {
                                 item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
                                     FeaturedHero(
                                         title = featured.title,
@@ -273,8 +272,7 @@ fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
                                         rating = featured.rating,
                                         releaseDate = null,
                                         overview = featured.overview,
-                                        onClick = { viewModel.selectSeries(featured) }
-                                    )
+                                    ) { viewModel.selectSeries(featured) }
                                 }
                             }
 
@@ -301,6 +299,7 @@ fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
                         url = episode.streamUrl,
                         title = "${uiState.selectedSeries!!.title} - S${episode.seasonNumber}E${episode.episodeNumber}",
                         type = PlaybackType.SERIES,
+                        itemId = uiState.selectedSeries!!.id,
                         headers = episode.headers
                     )
                     viewModel.clearSelectedSeries()

@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Tv
@@ -61,9 +63,21 @@ fun SideBar(
             isSelected = currentRoute == "series",
             onClick = { onNavigate("series") }
         )
+        SideBarItem(
+            icon = Icons.Default.Favorite,
+            label = "Favorites",
+            isSelected = currentRoute == "favorites",
+            onClick = { onNavigate("favorites") }
+        )
         
         Box(modifier = Modifier.weight(1f)) // Spacer
         
+        SideBarItem(
+            icon = Icons.Default.History,
+            label = "Logs",
+            isSelected = currentRoute == "logs",
+            onClick = { onNavigate("logs") }
+        )
         SideBarItem(
             icon = Icons.Default.Settings,
             label = "Settings",

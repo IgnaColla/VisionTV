@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.HighQuality
@@ -76,14 +78,14 @@ import androidx.tv.material3.Text as TvText
 fun PlayerScreen(
     item: PlaybackItem,
     onClose: () -> Unit,
-    viewModel: PlayerViewModel = viewModel()
+    viewModel: PlayerViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val player = viewModel.getPlayer()
     val focusRequester = remember { FocusRequester() }
     val errorMessage = uiState.errorMessage
 
-    var showResolutionDialog by remember { mutableStateOf(false) }
+    var showResolutionDialog by remember { mutableStateOf(value = false) }
 
     val iconClose: ImageVector = Icons.Filled.Close
     val iconFastRewind: ImageVector = Icons.Filled.FastRewind
@@ -92,6 +94,8 @@ fun PlayerScreen(
     val iconFastForward: ImageVector = Icons.Filled.FastForward
     val iconVolume: ImageVector = Icons.AutoMirrored.Filled.VolumeUp
     val iconResolution: ImageVector = Icons.Filled.HighQuality
+    val iconFavorite: ImageVector = if (uiState.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder
+    val favColor = if (uiState.isFavorite) Color(0xFFFF3B30) else Color.White
 
     LaunchedEffect(item) { viewModel.prepare(item) }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -107,16 +111,37 @@ fun PlayerScreen(
                 if (event.type == KeyEventType.KeyDown) {
                     when (event.key) {
                         Key.DirectionCenter,
-                        Key.Enter -> { viewModel.togglePlayPause(); true }
+                        Key.Enter -> {
+                            viewModel.togglePlayPause()
+                            true
+                        }
                         Key.DirectionRight,
-                        Key.MediaFastForward -> { viewModel.seekForward(); true }
+                        Key.MediaFastForward -> {
+                            viewModel.seekForward()
+                            true
+                        }
                         Key.DirectionLeft,
-                        Key.MediaRewind -> { viewModel.seekBackward(); true }
-                        Key.DirectionUp -> { viewModel.setVolume(uiState.volume + 0.1f); true }
-                        Key.DirectionDown -> { viewModel.setVolume(uiState.volume - 0.1f); true }
+                        Key.MediaRewind -> {
+                            viewModel.seekBackward()
+                            true
+                        }
+                        Key.DirectionUp -> {
+                            viewModel.setVolume(uiState.volume + 0.1f)
+                            true
+                        }
+                        Key.DirectionDown -> {
+                            viewModel.setVolume(uiState.volume - 0.1f)
+                            true
+                        }
                         Key.Back,
-                        Key.Escape -> { onClose(); true }
-                        else -> { viewModel.showControlsTemporarily(); false }
+                        Key.Escape -> {
+                            onClose()
+                            true
+                        }
+                        else -> {
+                            viewModel.showControlsTemporarily()
+                            false
+                        }
                     }
                 } else false
             }
@@ -134,7 +159,7 @@ fun PlayerScreen(
         )
 
         // ── Buffering ─────────────────────────────────────────────────────
-        if (uiState.isBuffering && errorMessage == null) {
+        if (uiState.isBuffering && (errorMessage == null)) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color.White)
             }
@@ -193,6 +218,12 @@ fun PlayerScreen(
                     }
                     
                     Row(modifier = Modifier.align(Alignment.CenterEnd), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = { viewModel.toggleFavorite() },
+                            modifier = Modifier.background(Color(0x44FFFFFF), CircleShape)
+                        ) {
+                            Icon(imageVector = iconFavorite, contentDescription = "Favorite", tint = favColor)
+                        }
                         IconButton(
                             onClick = { showResolutionDialog = true },
                             modifier = Modifier.background(Color(0x44FFFFFF), CircleShape)
