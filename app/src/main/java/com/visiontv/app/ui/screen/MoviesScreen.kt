@@ -27,6 +27,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,21 +58,25 @@ private val PillInactive = Color(0xFF1C1C1E)
 private val BorderColor = Color(0xFF2C2C2E)
 
 @Composable
-fun MoviesScreen(viewModel: MoviesViewModel = viewModel()) {
+fun MoviesScreen(
+    onPlay: (PlaybackItem) -> Unit,
+    viewModel: MoviesViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (uiState.selectedMovie != null) {
-        PlayerScreen(
-            item = PlaybackItem(
-                url = uiState.selectedMovie!!.streamUrl,
-                title = uiState.selectedMovie!!.title,
-                type = PlaybackType.MOVIE,
-                itemId = uiState.selectedMovie!!.streamUrl,
-                headers = uiState.selectedMovie!!.headers,
-            ),
-            onClose = { viewModel.clearSelectedMovie() }
-        )
-        return
+    LaunchedEffect(uiState.selectedMovie) {
+        uiState.selectedMovie?.let { movie ->
+            onPlay(
+                PlaybackItem(
+                    url = movie.streamUrl,
+                    title = movie.title,
+                    type = PlaybackType.MOVIE,
+                    itemId = movie.streamUrl,
+                    headers = movie.headers,
+                ),
+            )
+            viewModel.clearSelectedMovie()
+        }
     }
 
     Column(

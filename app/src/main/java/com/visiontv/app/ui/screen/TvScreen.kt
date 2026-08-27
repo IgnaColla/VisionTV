@@ -29,6 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,21 +58,25 @@ private val TextMuted = Color(0xFF8E8E93)
 private val BorderColor = Color(0xFF2C2C2E)
 
 @Composable
-fun TvScreen(viewModel: TvViewModel = viewModel()) {
+fun TvScreen(
+    onPlay: (PlaybackItem) -> Unit,
+    viewModel: TvViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    if (uiState.selectedChannel != null) {
-        PlayerScreen(
-            item = PlaybackItem(
-                url = uiState.selectedChannel!!.url,
-                title = uiState.selectedChannel!!.name,
-                type = PlaybackType.LIVE_TV,
-                itemId = uiState.selectedChannel!!.url,
-                headers = uiState.selectedChannel!!.headers,
-            ),
-            onClose = { viewModel.clearSelectedChannel() }
-        )
-        return
+    LaunchedEffect(uiState.selectedChannel) {
+        uiState.selectedChannel?.let { channel ->
+            onPlay(
+                PlaybackItem(
+                    url = channel.url,
+                    title = channel.name,
+                    type = PlaybackType.LIVE_TV,
+                    itemId = channel.url,
+                    headers = channel.headers,
+                ),
+            )
+            viewModel.clearSelectedChannel()
+        }
     }
 
     Column(

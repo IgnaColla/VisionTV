@@ -1,12 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="160dp"
     android:height="90dp"
     android:viewportWidth="320"
     android:viewportHeight="180">
     <path
-        android:fillColor="#6366F1"
+        android:fillColor="#0D0D0D"
         android:pathData="M0,0h320v180h-320z" />
+
+    <!-- Screen -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M160,90m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+        android:pathData="M110,60c-4,0 -8,4 -8,8v44c0,4 4,8 8,8h100c4,0 8,-4 8,-8v-44c0,-4 -4,-8 -8,-8H110z M118,72h84v36H118V72z" />
+
+    <!-- Play Button -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M152,80l24,10l-24,10z" />
 </vector>

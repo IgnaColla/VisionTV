@@ -17,10 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,48 +40,43 @@ private val HeaderBg = Color(0xFF0D0D0D)
 private val TextMuted = Color(0xFF8E8E93)
 
 @Composable
-fun FavoritesScreen(viewModel: FavoritesViewModel = viewModel()) {
+fun FavoritesScreen(
+    onPlay: (PlaybackItem) -> Unit,
+    viewModel: FavoritesViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedChannel by viewModel.selectedChannel.collectAsStateWithLifecycle()
     val selectedMovie by viewModel.selectedMovie.collectAsStateWithLifecycle()
     val selectedSeries by viewModel.selectedSeries.collectAsStateWithLifecycle()
-    
-    var playingItem by remember { mutableStateOf<PlaybackItem?>(null) }
 
-    if (playingItem != null) {
-        PlayerScreen(
-            item = playingItem!!,
-            onClose = { playingItem = null },
-        )
-        return
+    LaunchedEffect(selectedChannel) {
+        selectedChannel?.let { channel ->
+            onPlay(
+                PlaybackItem(
+                    url = channel.url,
+                    title = channel.name,
+                    type = PlaybackType.LIVE_TV,
+                    itemId = channel.url,
+                    headers = channel.headers,
+                ),
+            )
+            viewModel.clearChannelSelection()
+        }
     }
 
-    if (selectedChannel != null) {
-        PlayerScreen(
-            item = PlaybackItem(
-                url = selectedChannel!!.url,
-                title = selectedChannel!!.name,
-                type = PlaybackType.LIVE_TV,
-                itemId = selectedChannel!!.url,
-                headers = selectedChannel!!.headers
-            ),
-            onClose = { viewModel.clearChannelSelection() }
-        )
-        return
-    }
-
-    if (selectedMovie != null) {
-        PlayerScreen(
-            item = PlaybackItem(
-                url = selectedMovie!!.streamUrl,
-                title = selectedMovie!!.title,
-                type = PlaybackType.MOVIE,
-                itemId = selectedMovie!!.streamUrl,
-                headers = selectedMovie!!.headers
-            ),
-            onClose = { viewModel.clearMovieSelection() }
-        )
-        return
+    LaunchedEffect(selectedMovie) {
+        selectedMovie?.let { movie ->
+            onPlay(
+                PlaybackItem(
+                    url = movie.streamUrl,
+                    title = movie.title,
+                    type = PlaybackType.MOVIE,
+                    itemId = movie.streamUrl,
+                    headers = movie.headers,
+                )
+            )
+            viewModel.clearMovieSelection()
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -214,12 +207,14 @@ fun FavoritesScreen(viewModel: FavoritesViewModel = viewModel()) {
             EpisodePicker(
                 series = selectedSeries!!,
                 onEpisodeSelected = { episode ->
-                    playingItem = PlaybackItem(
-                        url = episode.streamUrl,
-                        title = "${selectedSeries!!.title} - S${episode.seasonNumber}E${episode.episodeNumber}",
-                        type = PlaybackType.SERIES,
-                        itemId = selectedSeries!!.id,
-                        headers = episode.headers
+                    onPlay(
+                        PlaybackItem(
+                            url = episode.streamUrl,
+                            title = "${selectedSeries!!.title} - S${episode.seasonNumber}E${episode.episodeNumber}",
+                            type = PlaybackType.SERIES,
+                            itemId = selectedSeries!!.id,
+                            headers = episode.headers
+                        )
                     )
                     viewModel.clearSeriesSelection()
                 },

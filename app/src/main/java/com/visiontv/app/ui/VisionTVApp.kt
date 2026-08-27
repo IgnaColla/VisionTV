@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -22,6 +25,8 @@ import com.visiontv.app.ui.screen.MoviesScreen
 import com.visiontv.app.ui.screen.SeriesScreen
 import com.visiontv.app.ui.screen.SettingsScreen
 import com.visiontv.app.ui.screen.TvScreen
+import com.visiontv.app.ui.screen.PlayerScreen
+import com.visiontv.app.data.model.PlaybackItem
 import com.visiontv.app.ui.theme.VisionTVTheme
 
 @Composable
@@ -29,39 +34,51 @@ fun VisionTVApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    
+    var activePlayerItem by remember { mutableStateOf<PlaybackItem?>(null) }
 
     VisionTVTheme {
-        Row(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            // Sidebar fijo a la izquierda (estilo TV)
-            Box(modifier = Modifier.width(80.dp).fillMaxHeight()) {
-                SideBar(
-                    currentRoute = currentRoute ?: "tv",
-                ) { route ->
-                    if (currentRoute != route) {
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                // Sidebar fijo a la izquierda (estilo TV)
+                Box(modifier = Modifier.width(80.dp).fillMaxHeight()) {
+                    SideBar(
+                        currentRoute = currentRoute ?: "tv",
+                    ) { route ->
+                        if (currentRoute != route) {
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.startDestinationId) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
                         }
+                    }
+                }
+
+                // Contenido principal
+                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = "tv",
+                    ) {
+                        composable("tv") { TvScreen(onPlay = { item: PlaybackItem -> activePlayerItem = item }) }
+                        composable("movies") { MoviesScreen(onPlay = { item: PlaybackItem -> activePlayerItem = item }) }
+                        composable("series") { SeriesScreen(onPlay = { item: PlaybackItem -> activePlayerItem = item }) }
+                        composable("favorites") { FavoritesScreen(onPlay = { item: PlaybackItem -> activePlayerItem = item }) }
+                        composable("logs") { LogsScreen() }
+                        composable("settings") { SettingsScreen() }
                     }
                 }
             }
 
-            // Contenido principal
-            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                NavHost(
-                    navController = navController,
-                    startDestination = "tv",
-                ) {
-                    composable("tv") { TvScreen() }
-                    composable("movies") { MoviesScreen() }
-                    composable("series") { SeriesScreen() }
-                    composable("favorites") { FavoritesScreen() }
-                    composable("logs") { LogsScreen() }
-                    composable("settings") { SettingsScreen() }
-                }
+            // Global Fullscreen Player
+            if (activePlayerItem != null) {
+                PlayerScreen(
+                    item = activePlayerItem!!,
+                    onClose = { activePlayerItem = null }
+                )
             }
         }
     }

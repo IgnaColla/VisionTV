@@ -42,6 +42,7 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                     currentState.copy(
                         playlists = playlists,
                         favorites = favorites,
+                        recentUrls = recentUrls,
                         recentChannels = recentChannels
                     )
                 }
@@ -66,10 +67,14 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                 AppLogger.info("${channels.size} channels loaded", listOf("tv", "playlist"))
                 _uiState.update { currentState ->
                     val categories = buildCategories(channels)
+                    val recentChannels = currentState.recentUrls.mapNotNull { url ->
+                        channels.find { it.url == url }
+                    }
                     currentState.copy(
                         isLoading = false,
                         channels = channels,
-                        categories = categories
+                        categories = categories,
+                        recentChannels = recentChannels
                     )
                 }
                 applyFilters()

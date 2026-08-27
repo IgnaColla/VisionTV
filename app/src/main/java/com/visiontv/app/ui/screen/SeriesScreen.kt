@@ -28,9 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,23 +58,17 @@ private val PillInactive = Color(0xFF1C1C1E)
 private val BorderColor = Color(0xFF2C2C2E)
 
 @Composable
-fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
+fun SeriesScreen(
+    onPlay: (PlaybackItem) -> Unit,
+    viewModel: SeriesViewModel = viewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    var playingEpisode by remember { mutableStateOf<PlaybackItem?>(null) }
-
-    if (playingEpisode != null) {
-        PlayerScreen(
-            item = playingEpisode!!,
-            onClose = { playingEpisode = null },
-        )
-        return
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(ScreenBg)
+                .background(ScreenBg),
         ) {
             // ── Header ────────────────────────────────────────────────────────
             Row(
@@ -87,7 +78,7 @@ fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
                     .background(HeaderBg)
                     .padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(
                     modifier = Modifier
@@ -295,16 +286,18 @@ fun SeriesScreen(viewModel: SeriesViewModel = viewModel()) {
             EpisodePicker(
                 series = uiState.selectedSeries!!,
                 onEpisodeSelected = { episode ->
-                    playingEpisode = PlaybackItem(
-                        url = episode.streamUrl,
-                        title = "${uiState.selectedSeries!!.title} - S${episode.seasonNumber}E${episode.episodeNumber}",
-                        type = PlaybackType.SERIES,
-                        itemId = uiState.selectedSeries!!.id,
-                        headers = episode.headers
+                    onPlay(
+                        PlaybackItem(
+                            url = episode.streamUrl,
+                            title = "${uiState.selectedSeries!!.title} - S${episode.seasonNumber}E${episode.episodeNumber}",
+                            type = PlaybackType.SERIES,
+                            itemId = uiState.selectedSeries!!.id,
+                            headers = episode.headers
+                        )
                     )
                     viewModel.clearSelectedSeries()
                 },
-                onClose = { viewModel.clearSelectedSeries() }
+                onClose = viewModel::clearSelectedSeries,
             )
         }
     }

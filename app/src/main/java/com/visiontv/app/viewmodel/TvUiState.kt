@@ -9,6 +9,7 @@ data class TvUiState(
     val channels: List<Channel> = emptyList(),
     val filteredChannels: List<Channel> = emptyList(),
     val recentChannels: List<Channel> = emptyList(),
+    val recentUrls: List<String> = emptyList(),
     val categories: List<String> = listOf("Argentina", "Favorites", "Other", "All"),
     val activeCategory: String = "Argentina",
     val searchQuery: String = "",

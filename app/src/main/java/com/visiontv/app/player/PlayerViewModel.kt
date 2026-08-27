@@ -40,7 +40,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _uiState.update { it.copy(isPlaying = isPlaying) }
-            if (isPlaying) scheduleHideControls()
+            if (isPlaying) resetHideTimer()
         }
 
         override fun onPlaybackStateChanged(state: Int) {
@@ -88,7 +88,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     @OptIn(UnstableApi::class)
     fun prepare(item: PlaybackItem) {
         currentItem = item
-        _uiState.update { PlayerUiState(title = item.title) }
+        _uiState.update { PlayerUiState(title = item.title, showControls = true) }
+        resetHideTimer()
 
         // Check favorite status immediately
         viewModelScope.launch {
@@ -197,13 +198,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun showControlsTemporarily() {
         _uiState.update { it.copy(showControls = true) }
-        scheduleHideControls()
+        resetHideTimer()
     }
 
-    private fun scheduleHideControls() {
+    fun resetHideTimer() {
         hideControlsJob?.cancel()
         hideControlsJob = viewModelScope.launch {
-            delay(4.seconds) // hide controls after 4s of inactivity
+            delay(5.seconds) // Slightly longer hide timeout
             _uiState.update { it.copy(showControls = false) }
         }
     }

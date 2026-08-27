@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -61,6 +63,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -73,6 +76,60 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.Text as TvText
 
+@Composable
+private fun ErrorButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    
+    Button(
+        onClick = onClick,
+        modifier = modifier.onFocusChanged { isFocused = it.isFocused },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isFocused) Color.White else Color(0xFF1C1C1E),
+            contentColor = if (isFocused) Color.Black else Color.White
+        ),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Text(text = text, fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal)
+    }
+}
+
+@Composable
+private fun PlayerControlButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    onFocus: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = Color.White,
+    iconSize: androidx.compose.ui.unit.Dp = 24.dp
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .onFocusChanged { 
+                isFocused = it.isFocused
+                if (it.isFocused) onFocus()
+            }
+            .background(
+                if (isFocused) Color.White else Color(0x44FFFFFF),
+                CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (isFocused) Color.Black else tint,
+            modifier = Modifier.size(iconSize)
+        )
+    }
+}
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun PlayerScreen(
@@ -82,7 +139,10 @@ fun PlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val player = viewModel.getPlayer()
-    val focusRequester = remember { FocusRequester() }
+    val mainFocusRequester = remember { FocusRequester() }
+    val playPauseFocusRequester = remember { FocusRequester() }
+    val errorFocusRequester = remember { FocusRequester() }
+    val qualityFocusRequester = remember { FocusRequester() }
     val errorMessage = uiState.errorMessage
 
     var showResolutionDialog by remember { mutableStateOf(value = false) }
@@ -98,45 +158,69 @@ fun PlayerScreen(
     val favColor = if (uiState.isFavorite) Color(0xFFFF3B30) else Color.White
 
     LaunchedEffect(item) { viewModel.prepare(item) }
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    
+    LaunchedEffect(Unit) {
+        mainFocusRequester.requestFocus()
+    }
+
+    LaunchedEffect(uiState.showControls) {
+        if (uiState.showControls && (errorMessage == null)) {
+            playPauseFocusRequester.requestFocus()
+        } else if ((errorMessage == null)) {
+            mainFocusRequester.requestFocus()
+        }
+    }
+
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            errorFocusRequester.requestFocus()
+        }
+    }
+
+    LaunchedEffect(showResolutionDialog) {
+        if (showResolutionDialog) {
+            qualityFocusRequester.requestFocus()
+        }
+    }
+
     DisposableEffect(Unit) { onDispose { player.pause() } }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .focusRequester(focusRequester)
+            .focusRequester(mainFocusRequester)
             .focusable()
             .onKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     when (event.key) {
-                        Key.DirectionCenter,
-                        Key.Enter -> {
-                            viewModel.togglePlayPause()
-                            true
-                        }
-                        Key.DirectionRight,
-                        Key.MediaFastForward -> {
-                            viewModel.seekForward()
-                            true
-                        }
-                        Key.DirectionLeft,
-                        Key.MediaRewind -> {
-                            viewModel.seekBackward()
-                            true
-                        }
-                        Key.DirectionUp -> {
-                            viewModel.setVolume(uiState.volume + 0.1f)
-                            true
-                        }
-                        Key.DirectionDown -> {
-                            viewModel.setVolume(uiState.volume - 0.1f)
-                            true
-                        }
                         Key.Back,
                         Key.Escape -> {
                             onClose()
                             true
+                        }
+                        Key.DirectionUp -> {
+                            if (!uiState.showControls) {
+                                viewModel.setVolume(uiState.volume + 0.1f)
+                                viewModel.showControlsTemporarily()
+                                true
+                            } else false
+                        }
+                        Key.DirectionDown -> {
+                            if (!uiState.showControls) {
+                                viewModel.setVolume(uiState.volume - 0.1f)
+                                viewModel.showControlsTemporarily()
+                                true
+                            } else false
+                        }
+                        Key.DirectionLeft,
+                        Key.DirectionRight,
+                        Key.DirectionCenter,
+                        Key.Enter -> {
+                            if (!uiState.showControls) {
+                                viewModel.showControlsTemporarily()
+                                true
+                            } else false
                         }
                         else -> {
                             viewModel.showControlsTemporarily()
@@ -178,8 +262,15 @@ fun PlayerScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(text = errorMessage, color = Color.White, fontSize = 18.sp)
-                    Button(onClick = { viewModel.retry() }) { Text(stringResource(R.string.retry)) }
-                    Button(onClick = onClose) { Text(stringResource(R.string.player_back)) }
+                    ErrorButton(
+                        text = stringResource(R.string.retry),
+                        onClick = { viewModel.retry() },
+                        modifier = Modifier.focusRequester(errorFocusRequester)
+                    )
+                    ErrorButton(
+                        text = stringResource(R.string.player_back),
+                        onClick = onClose
+                    )
                 }
             }
         }
@@ -218,24 +309,25 @@ fun PlayerScreen(
                     }
                     
                     Row(modifier = Modifier.align(Alignment.CenterEnd), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(
+                        PlayerControlButton(
+                            icon = iconFavorite,
+                            contentDescription = "Favorite",
+                            tint = favColor,
                             onClick = { viewModel.toggleFavorite() },
-                            modifier = Modifier.background(Color(0x44FFFFFF), CircleShape)
-                        ) {
-                            Icon(imageVector = iconFavorite, contentDescription = "Favorite", tint = favColor)
-                        }
-                        IconButton(
+                            onFocus = { viewModel.resetHideTimer() }
+                        )
+                        PlayerControlButton(
+                            icon = iconResolution,
+                            contentDescription = "Resolution",
                             onClick = { showResolutionDialog = true },
-                            modifier = Modifier.background(Color(0x44FFFFFF), CircleShape)
-                        ) {
-                            Icon(imageVector = iconResolution, contentDescription = "Resolution", tint = Color.White)
-                        }
-                        IconButton(
+                            onFocus = { viewModel.resetHideTimer() }
+                        )
+                        PlayerControlButton(
+                            icon = iconClose,
+                            contentDescription = stringResource(R.string.player_close),
                             onClick = onClose,
-                            modifier = Modifier.background(Color(0x44FFFFFF), CircleShape)
-                        ) {
-                            Icon(imageVector = iconClose, contentDescription = stringResource(R.string.player_close), tint = Color.White)
-                        }
+                            onFocus = { viewModel.resetHideTimer() }
+                        )
                     }
                 }
 
@@ -265,7 +357,6 @@ fun PlayerScreen(
                     }
                 }
 
-                // Bottom Gradient
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -280,20 +371,21 @@ fun PlayerScreen(
                         horizontalArrangement = Arrangement.spacedBy(32.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = { viewModel.seekBackward() }) {
-                            Icon(
-                                imageVector = iconFastRewind,
-                                contentDescription = stringResource(R.string.player_rewind),
-                                tint = Color.White,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
+                        PlayerControlButton(
+                            icon = iconFastRewind,
+                            contentDescription = stringResource(R.string.player_rewind),
+                            iconSize = 36.dp,
+                            onClick = { viewModel.seekBackward() },
+                            onFocus = { viewModel.resetHideTimer() }
+                        )
 
                         IconButton(
                             onClick = { viewModel.togglePlayPause() },
                             modifier = Modifier
                                 .size(64.dp)
-                                .background(Color.White, CircleShape)
+                                .focusRequester(playPauseFocusRequester)
+                                .onFocusChanged { if (it.isFocused) viewModel.resetHideTimer() }
+                                .background(if (uiState.showControls) Color.White else Color.Transparent, CircleShape)
                         ) {
                             Icon(
                                 imageVector = if (uiState.isPlaying) iconPause else iconPlayArrow,
@@ -303,14 +395,13 @@ fun PlayerScreen(
                             )
                         }
 
-                        IconButton(onClick = { viewModel.seekForward() }) {
-                            Icon(
-                                imageVector = iconFastForward,
-                                contentDescription = stringResource(R.string.player_forward),
-                                tint = Color.White,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
+                        PlayerControlButton(
+                            icon = iconFastForward,
+                            contentDescription = stringResource(R.string.player_forward),
+                            iconSize = 36.dp,
+                            onClick = { viewModel.seekForward() },
+                            onFocus = { viewModel.resetHideTimer() }
+                        )
                     }
                 }
             }
@@ -318,48 +409,53 @@ fun PlayerScreen(
 
         // Resolution Selection Dialog
         if (showResolutionDialog) {
-            Surface(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xAA000000)),
-                onClick = { showResolutionDialog = false }
+                    .background(Color(0xAA000000))
+                    .onKeyEvent {
+                        if (it.key == Key.Back || it.key == Key.Escape) {
+                            showResolutionDialog = false
+                            true
+                        } else false
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Surface(
-                        modifier = Modifier
-                            .size(300.dp, 400.dp)
-                            .clip(RoundedCornerShape(16.dp)),
-                        color = Color(0xFF1C1C1E)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            TvText(
-                                text = "Select Resolution",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
-                            LazyColumn {
-                                item {
-                                    ListItem(
-                                        selected = uiState.selectedResolution == null,
-                                        onClick = {
-                                            viewModel.setResolution(null)
-                                            showResolutionDialog = false
-                                        },
-                                        headlineContent = { TvText("Auto", color = Color.White) }
-                                    )
-                                }
-                                items(uiState.availableResolutions) { resolution ->
-                                    ListItem(
-                                        selected = uiState.selectedResolution == resolution,
-                                        onClick = {
-                                            viewModel.setResolution(resolution)
-                                            showResolutionDialog = false
-                                        },
-                                        headlineContent = { TvText(resolution.label, color = Color.White) },
-                                        supportingContent = { TvText("${resolution.width}x${resolution.height} • ${resolution.bitrate / 1000}kbps", color = Color.LightGray) }
-                                    )
-                                }
+                Surface(
+                    modifier = Modifier
+                        .size(300.dp, 400.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    color = Color(0xFF1C1C1E)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        TvText(
+                            text = "Select Resolution",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                        LazyColumn {
+                            item {
+                                ListItem(
+                                    selected = uiState.selectedResolution == null,
+                                    onClick = {
+                                        viewModel.setResolution(null)
+                                        showResolutionDialog = false
+                                    },
+                                    headlineContent = { TvText("Auto", color = Color.White) },
+                                    modifier = Modifier.focusRequester(qualityFocusRequester)
+                                )
+                            }
+                            items(uiState.availableResolutions) { resolution ->
+                                ListItem(
+                                    selected = uiState.selectedResolution == resolution,
+                                    onClick = {
+                                        viewModel.setResolution(resolution)
+                                        showResolutionDialog = false
+                                    },
+                                    headlineContent = { TvText(resolution.label, color = Color.White) },
+                                    supportingContent = { TvText("${resolution.width}x${resolution.height} • ${resolution.bitrate / 1000}kbps", color = Color.LightGray) }
+                                )
                             }
                         }
                     }
