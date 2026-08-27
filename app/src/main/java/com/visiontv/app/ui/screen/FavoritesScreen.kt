@@ -71,7 +71,7 @@ fun FavoritesScreen(
                     url = movie.streamUrl,
                     title = movie.title,
                     type = PlaybackType.MOVIE,
-                    itemId = movie.streamUrl,
+                    itemId = movie.id,
                     headers = movie.headers,
                 )
             )
@@ -163,7 +163,7 @@ fun FavoritesScreen(
                                             movie = movie,
                                             isFavorite = true,
                                             onClick = { viewModel.selectMovie(it) },
-                                            onToggleFavorite = { viewModel.toggleFavorite(it.streamUrl) },
+                                            onToggleFavorite = { viewModel.toggleFavorite(it.id) },
                                             modifier = Modifier.width(160.dp)
                                         )
                                     }

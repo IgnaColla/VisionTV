@@ -30,14 +30,15 @@ import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.HighQuality
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.Text as MobileText
+import androidx.tv.material3.Button
+import androidx.tv.material3.ButtonDefaults as TvButtonDefaults
+import androidx.tv.material3.Text as TvText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -74,7 +75,6 @@ import com.visiontv.app.data.model.PlaybackItem
 import com.visiontv.app.player.PlayerViewModel
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.ListItem
-import androidx.tv.material3.Text as TvText
 
 @Composable
 private fun ErrorButton(
@@ -82,18 +82,25 @@ private fun ErrorButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(value = false) }
     
     Button(
         onClick = onClick,
         modifier = modifier.onFocusChanged { isFocused = it.isFocused },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isFocused) Color.White else Color(0xFF1C1C1E),
-            contentColor = if (isFocused) Color.Black else Color.White
+        colors = TvButtonDefaults.colors(
+            containerColor = Color(0xFF1C1C1E),
+            contentColor = Color.White,
+            focusedContainerColor = Color.White,
+            focusedContentColor = Color.Black
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = TvButtonDefaults.shape(shape = RoundedCornerShape(8.dp))
     ) {
-        Text(text = text, fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal)
+        TvText(
+            text = text, 
+            style = androidx.compose.ui.text.TextStyle(
+                fontWeight = if (isFocused) FontWeight.Bold else FontWeight.Normal
+            )
+        )
     }
 }
 
@@ -261,7 +268,7 @@ fun PlayerScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(text = errorMessage, color = Color.White, fontSize = 18.sp)
+                    TvText(text = errorMessage, color = Color.White, fontSize = 18.sp)
                     ErrorButton(
                         text = stringResource(R.string.retry),
                         onClick = { viewModel.retry() },
@@ -294,13 +301,13 @@ fun PlayerScreen(
                         .padding(horizontal = 24.dp, vertical = 20.dp)
                 ) {
                     Column(modifier = Modifier.align(Alignment.CenterStart)) {
-                        Text(
+                        MobileText(
                             text = uiState.title,
                             color = Color.White,
                             fontSize = 20.sp
                         )
                         if (uiState.selectedResolution != null) {
-                            Text(
+                            MobileText(
                                 text = uiState.selectedResolution!!.label,
                                 color = Color.LightGray,
                                 fontSize = 14.sp

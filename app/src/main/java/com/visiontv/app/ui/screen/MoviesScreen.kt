@@ -71,7 +71,7 @@ fun MoviesScreen(
                     url = movie.streamUrl,
                     title = movie.title,
                     type = PlaybackType.MOVIE,
-                    itemId = movie.streamUrl,
+                    itemId = movie.id,
                     headers = movie.headers,
                 ),
             )
@@ -282,10 +282,10 @@ fun MoviesScreen(
                             }
                         }
 
-                        items(uiState.filteredMovies, key = { it.streamUrl }) { movie ->
+                        items(uiState.filteredMovies, key = { it.id }) { movie ->
                             MovieCard(
                                 movie = movie,
-                                isFavorite = uiState.favorites.contains(movie.streamUrl),
+                                isFavorite = uiState.favorites.contains(movie.id),
                                 onToggleFavorite = { viewModel.toggleFavorite(it) },
                                 onClick = { viewModel.selectMovie(it) }
                             )

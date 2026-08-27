@@ -10,5 +10,6 @@ data class Series(
     val genres: List<String> = emptyList(),
     val category: String = "General",
     val seasons: Map<Int, List<Episode>> = emptyMap(),
-    val sourceType: PlaylistSourceType = PlaylistSourceType.SERIES
+    val sourceType: PlaylistSourceType = PlaylistSourceType.SERIES,
+    val tmdbId: Int? = null
 )

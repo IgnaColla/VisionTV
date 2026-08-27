@@ -16,7 +16,11 @@ class SeriesRepository(
         val iptvSeries = fetchIptvSeries(playlists)
         val pdSeries = publicDomainRepository?.getPublicDomainContent()?.second ?: emptyList()
         
-        return (iptvSeries + pdSeries).distinctBy { it.title }
+        return (iptvSeries + pdSeries).distinctBy { it.id }
+    }
+
+    suspend fun resolvePublicDomainUrl(archiveId: String): String? {
+        return publicDomainRepository?.resolveStreamUrl(archiveId)
     }
 
     private suspend fun fetchIptvSeries(playlists: List<PlaylistSource>): List<Series> {
@@ -42,14 +46,20 @@ class SeriesRepository(
     }
 
     suspend fun enrichSeries(series: Series): Series {
-        val info = tmdbRepository.getSeriesInfo(series.title) ?: return series
-        val details = tmdbRepository.getSeriesDetails(info.id)
+        val tmdbId = series.tmdbId
+        val info = if (tmdbId != null) null else tmdbRepository.getSeriesInfo(series.title)
+        val details = tmdbId?.let { tmdbRepository.getSeriesDetails(it) } ?: info?.let { tmdbRepository.getSeriesDetails(it.id) }
+        
+        val posterPath = details?.posterPath ?: info?.posterPath
+        val backdropPath = details?.backdropPath ?: info?.backdropPath
+        val overview = details?.overview ?: info?.overview ?: series.overview
+        val voteAverage = details?.voteAverage ?: info?.voteAverage ?: series.rating
         
         return series.copy(
-            posterUrl = tmdbRepository.getPosterUrl(info.posterPath) ?: series.posterUrl,
-            backdropUrl = tmdbRepository.getBackdropUrl(info.backdropPath) ?: series.backdropUrl,
-            overview = info.overview ?: series.overview,
-            rating = info.voteAverage ?: series.rating,
+            posterUrl = tmdbRepository.getPosterUrl(posterPath) ?: series.posterUrl,
+            backdropUrl = tmdbRepository.getBackdropUrl(backdropPath) ?: series.backdropUrl,
+            overview = overview,
+            rating = voteAverage,
             genres = details?.genres?.map { it.name } ?: series.genres
         )
     }

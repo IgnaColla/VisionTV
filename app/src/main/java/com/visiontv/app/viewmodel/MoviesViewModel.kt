@@ -10,6 +10,9 @@ import com.visiontv.app.data.repository.MovieRepository
 import com.visiontv.app.data.repository.PublicDomainRepository
 import com.visiontv.app.util.AppLogger
 import com.visiontv.app.util.PreferencesManager
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +28,7 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
         publicDomainRepository = PublicDomainRepository(application)
     )
     private val preferences = PreferencesManager(application)
+    private var loadJob: kotlinx.coroutines.Job? = null
 
     private val _uiState = MutableStateFlow(MoviesUiState())
     val uiState: StateFlow<MoviesUiState> = _uiState.asStateFlow()
@@ -38,7 +42,7 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
                 Pair(playlists, favorites)
             }.collect { (playlists, favorites) ->
                 _uiState.update { it.copy(favorites = favorites) }
-                if (_uiState.value.movies.isEmpty()) {
+                if (_uiState.value.movies.isEmpty() && !uiState.value.isLoading) {
                     loadMovies(playlists.filter { it.type == PlaylistSourceType.MOVIES })
                 } else {
                     applyFilters()
@@ -48,7 +52,8 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun loadMovies(playlists: List<PlaylistSource>) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             runCatching {
                 movieRepository.getMovies(playlists)
@@ -76,19 +81,25 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
     private fun enrichMovies(movies: List<Movie>) {
         viewModelScope.launch {
             AppLogger.info("Enriching ${movies.size} movies with TMDB metadata...", listOf("movies"))
-            movies.forEach { movie ->
-                val enriched = movieRepository.enrichMovie(movie)
-                if (enriched != movie) {
-                    _uiState.update { state ->
-                        val updatedAll = state.movies.map {
-                            if (it.id == movie.id) enriched else it
+            
+            // Process in chunks of 10 for better stability
+            movies.chunked(10).forEach { chunk ->
+                val enrichedChunk = coroutineScope {
+                    chunk.map { movie ->
+                        async {
+                            runCatching { movieRepository.enrichMovie(movie) }.getOrDefault(movie)
                         }
-                        state.copy(movies = updatedAll)
-                    }
-                    applyFilters()
+                    }.awaitAll()
                 }
-                // Rate limiting to avoid hitting API limits
-                delay(100.milliseconds)
+                
+                _uiState.update { state ->
+                    val updatedAll = state.movies.map { existing ->
+                        enrichedChunk.find { it.id == existing.id } ?: existing
+                    }
+                    state.copy(movies = updatedAll)
+                }
+                applyFilters()
+                delay(300.milliseconds) // Slightly longer rate limit for stability
             }
         }
     }
@@ -114,14 +125,33 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleFavorite(movie: Movie) {
         viewModelScope.launch {
             val current = _uiState.value.favorites
-            val updated = if (current.contains(movie.streamUrl)) current - movie.streamUrl
-                          else current + movie.streamUrl
+            val updated = if (current.contains(movie.id)) current - movie.id
+                          else current + movie.id
             preferences.saveFavorites(updated)
         }
     }
 
     fun selectMovie(movie: Movie) {
-        _uiState.update { it.copy(selectedMovie = movie) }
+        if (movie.streamUrl.isBlank() && movie.id.startsWith("pd_")) {
+            resolveAndSelectMovie(movie)
+        } else {
+            _uiState.update { it.copy(selectedMovie = movie) }
+        }
+    }
+
+    private fun resolveAndSelectMovie(movie: Movie) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val archiveId = movie.id.removePrefix("pd_")
+            val realUrl = movieRepository.resolvePublicDomainUrl(archiveId)
+            
+            _uiState.update { it.copy(isLoading = false) }
+            if (realUrl != null) {
+                _uiState.update { it.copy(selectedMovie = movie.copy(streamUrl = realUrl)) }
+            } else {
+                _uiState.update { it.copy(errorMessage = "Failed to resolve video link") }
+            }
+        }
     }
 
     fun clearSelectedMovie() {

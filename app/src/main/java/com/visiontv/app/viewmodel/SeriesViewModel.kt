@@ -10,6 +10,9 @@ import com.visiontv.app.data.repository.PublicDomainRepository
 import com.visiontv.app.data.repository.SeriesRepository
 import com.visiontv.app.util.AppLogger
 import com.visiontv.app.util.PreferencesManager
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +28,7 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
         publicDomainRepository = PublicDomainRepository(application)
     )
     private val preferences = PreferencesManager(application)
+    private var loadJob: kotlinx.coroutines.Job? = null
 
     private val _uiState = MutableStateFlow(SeriesUiState())
     val uiState: StateFlow<SeriesUiState> = _uiState.asStateFlow()
@@ -38,7 +42,7 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
                 Pair(playlists, favorites)
             }.collect { (playlists, favorites) ->
                 _uiState.update { it.copy(favorites = favorites) }
-                if (_uiState.value.series.isEmpty()) {
+                if (_uiState.value.series.isEmpty() && !uiState.value.isLoading) {
                     loadSeries(playlists.filter { it.type == PlaylistSourceType.SERIES })
                 } else {
                     applyFilters()
@@ -48,7 +52,8 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun loadSeries(playlists: List<PlaylistSource>) {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             runCatching {
                 seriesRepository.getSeries(playlists)
@@ -76,18 +81,25 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
     private fun enrichSeries(seriesList: List<Series>) {
         viewModelScope.launch {
             AppLogger.info("Enriching ${seriesList.size} series with TMDB metadata...", listOf("series"))
-            seriesList.forEach { series ->
-                val enriched = seriesRepository.enrichSeries(series)
-                if (enriched != series) {
-                    _uiState.update { state ->
-                        val updatedAll = state.series.map {
-                            if (it.id == series.id) enriched else it
+            
+            // Process in chunks of 10
+            seriesList.chunked(10).forEach { chunk ->
+                val enrichedChunk = coroutineScope {
+                    chunk.map { series ->
+                        async {
+                            runCatching { seriesRepository.enrichSeries(series) }.getOrDefault(series)
                         }
-                        state.copy(series = updatedAll)
-                    }
-                    applyFilters()
+                    }.awaitAll()
                 }
-                delay(100.milliseconds)
+                
+                _uiState.update { state ->
+                    val updatedAll = state.series.map { existing ->
+                        enrichedChunk.find { it.id == existing.id } ?: existing
+                    }
+                    state.copy(series = updatedAll)
+                }
+                applyFilters()
+                delay(300.milliseconds)
             }
         }
     }
@@ -120,7 +132,36 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectSeries(series: Series) {
-        _uiState.update { it.copy(selectedSeries = series) }
+        if (series.seasons.isEmpty() && series.id.startsWith("pd_")) {
+            resolveAndSelectSeries(series)
+        } else {
+            _uiState.update { it.copy(selectedSeries = series) }
+        }
+    }
+
+    private fun resolveAndSelectSeries(series: Series) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val archiveId = series.id.removePrefix("pd_")
+            val realUrl = seriesRepository.resolvePublicDomainUrl(archiveId)
+            
+            _uiState.update { it.copy(isLoading = false) }
+            if (realUrl != null) {
+                // For public domain series, we treat them as a "single episode" movie-like series for now
+                // or we could map them to a dummy season.
+                val episode = com.visiontv.app.data.model.Episode(
+                    id = series.id,
+                    seasonNumber = 1,
+                    episodeNumber = 1,
+                    title = series.title,
+                    streamUrl = realUrl
+                )
+                val dummySeasons = mapOf(1 to listOf(episode))
+                _uiState.update { it.copy(selectedSeries = series.copy(seasons = dummySeasons)) }
+            } else {
+                _uiState.update { it.copy(errorMessage = "Failed to resolve video link") }
+            }
+        }
     }
 
     fun clearSelectedSeries() {

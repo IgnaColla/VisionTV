@@ -13,6 +13,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private val Context.dataStore by preferencesDataStore(name = "visiontv_prefs")
+private val Context.catalogDataStore by preferencesDataStore(name = "visiontv_catalog")
 
 class PreferencesManager(private val context: Context) {
 
@@ -64,7 +65,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     suspend fun saveCatalogCache(json: String, eTag: String?, timestamp: Long) {
-        context.dataStore.edit { prefs ->
+        context.catalogDataStore.edit { prefs ->
             prefs[CATALOG_JSON_KEY] = json
             if (eTag != null) prefs[CATALOG_ETAG_KEY] = eTag
             prefs[CATALOG_TIMESTAMP_KEY] = timestamp
@@ -72,7 +73,7 @@ class PreferencesManager(private val context: Context) {
     }
 
     suspend fun getCatalogCache(): Triple<String?, String?, Long> {
-        return context.dataStore.data.map { prefs ->
+        return context.catalogDataStore.data.map { prefs ->
             Triple(
                 prefs[CATALOG_JSON_KEY],
                 prefs[CATALOG_ETAG_KEY],

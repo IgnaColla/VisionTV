@@ -13,19 +13,30 @@ class MovieRepository(
         val iptvMovies = iptvRepository.fetchAllPlaylists(playlists).map { it.toMovie() }
         val pdMovies = publicDomainRepository?.getPublicDomainContent()?.first ?: emptyList()
         
-        return (iptvMovies + pdMovies).distinctBy { it.streamUrl }
+        return (iptvMovies + pdMovies).distinctBy { it.id }
+    }
+
+    suspend fun resolvePublicDomainUrl(archiveId: String): String? {
+        return publicDomainRepository?.resolveStreamUrl(archiveId)
     }
 
     suspend fun enrichMovie(movie: Movie): Movie {
-        val info = tmdbRepository.getMovieInfo(movie.title) ?: return movie
-        val details = tmdbRepository.getMovieDetails(info.id)
+        val tmdbId = movie.tmdbId
+        val info = if (tmdbId != null) null else tmdbRepository.getMovieInfo(movie.title)
+        val details = tmdbId?.let { tmdbRepository.getMovieDetails(it) } ?: info?.let { tmdbRepository.getMovieDetails(it.id) }
+        
+        val posterPath = details?.posterPath ?: info?.posterPath
+        val backdropPath = details?.backdropPath ?: info?.backdropPath
+        val overview = details?.overview ?: info?.overview ?: movie.overview
+        val voteAverage = details?.voteAverage ?: info?.voteAverage ?: movie.rating
+        val releaseDate = details?.releaseDate ?: info?.releaseDate
         
         return movie.copy(
-            posterUrl = tmdbRepository.getPosterUrl(info.posterPath) ?: movie.posterUrl,
-            backdropUrl = tmdbRepository.getBackdropUrl(info.backdropPath) ?: movie.backdropUrl,
-            overview = info.overview ?: movie.overview,
-            rating = info.voteAverage ?: movie.rating,
-            releaseYear = info.releaseDate?.split("-")?.firstOrNull() ?: movie.releaseYear,
+            posterUrl = tmdbRepository.getPosterUrl(posterPath) ?: movie.posterUrl,
+            backdropUrl = tmdbRepository.getBackdropUrl(backdropPath) ?: movie.backdropUrl,
+            overview = overview,
+            rating = voteAverage,
+            releaseYear = releaseDate?.split("-")?.firstOrNull() ?: movie.releaseYear,
             runtimeMinutes = details?.runtime ?: movie.runtimeMinutes,
             genres = details?.genres?.map { it.name } ?: movie.genres
         )
