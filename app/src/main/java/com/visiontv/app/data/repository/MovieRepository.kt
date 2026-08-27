@@ -3,15 +3,17 @@ package com.visiontv.app.data.repository
 import com.visiontv.app.data.model.Channel
 import com.visiontv.app.data.model.Movie
 import com.visiontv.app.data.model.PlaylistSource
-import com.visiontv.app.util.AppLogger
 
 class MovieRepository(
     private val iptvRepository: IptvRepository = IptvRepository(),
-    private val tmdbRepository: TmdbRepository = TmdbRepository()
+    private val tmdbRepository: TmdbRepository = TmdbRepository(),
+    private val publicDomainRepository: PublicDomainRepository? = null
 ) {
     suspend fun getMovies(playlists: List<PlaylistSource>): List<Movie> {
-        val channels = iptvRepository.fetchAllPlaylists(playlists)
-        return channels.map { it.toMovie() }
+        val iptvMovies = iptvRepository.fetchAllPlaylists(playlists).map { it.toMovie() }
+        val pdMovies = publicDomainRepository?.getPublicDomainContent()?.first ?: emptyList()
+        
+        return (iptvMovies + pdMovies).distinctBy { it.streamUrl }
     }
 
     suspend fun enrichMovie(movie: Movie): Movie {

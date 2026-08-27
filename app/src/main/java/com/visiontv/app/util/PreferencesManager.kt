@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.visiontv.app.data.model.PlaylistSource
 import com.visiontv.app.data.model.PlaylistSourceType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,6 +20,9 @@ class PreferencesManager(private val context: Context) {
         private val PLAYLISTS_KEY = stringPreferencesKey("iptv_playlists")
         private val FAVORITES_KEY = stringPreferencesKey("iptv_favorites")
         private val RECENTS_KEY = stringPreferencesKey("iptv_recents")
+        private val CATALOG_JSON_KEY = stringPreferencesKey("catalog_json")
+        private val CATALOG_ETAG_KEY = stringPreferencesKey("catalog_etag")
+        private val CATALOG_TIMESTAMP_KEY = androidx.datastore.preferences.core.longPreferencesKey("catalog_timestamp")
         private const val MAX_RECENTS = 10
     }
 
@@ -57,6 +61,24 @@ class PreferencesManager(private val context: Context) {
             val trimmed = current.take(MAX_RECENTS)
             prefs[RECENTS_KEY] = encodeStringList(trimmed)
         }
+    }
+
+    suspend fun saveCatalogCache(json: String, eTag: String?, timestamp: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[CATALOG_JSON_KEY] = json
+            if (eTag != null) prefs[CATALOG_ETAG_KEY] = eTag
+            prefs[CATALOG_TIMESTAMP_KEY] = timestamp
+        }
+    }
+
+    suspend fun getCatalogCache(): Triple<String?, String?, Long> {
+        return context.dataStore.data.map { prefs ->
+            Triple(
+                prefs[CATALOG_JSON_KEY],
+                prefs[CATALOG_ETAG_KEY],
+                prefs[CATALOG_TIMESTAMP_KEY] ?: 0L
+            )
+        }.first()
     }
 
     private fun encodePlaylists(playlists: List<PlaylistSource>): String {

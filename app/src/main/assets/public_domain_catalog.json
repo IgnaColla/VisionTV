@@ -1,0 +1,33 @@
+{
+  "catalog_version": 1,
+  "items": [
+    {
+      "title": "Night of the Living Dead",
+      "type": "movie",
+      "archive_org_id": "night_of_the_living_dead_1968",
+      "year": 1968,
+      "tmdb_id": 10331
+    },
+    {
+      "title": "The Fast and the Furious",
+      "type": "movie",
+      "archive_org_id": "the-fast-and-the-furious-1954",
+      "year": 1954,
+      "tmdb_id": 41443
+    },
+    {
+      "title": "Sherlock Holmes: The Sign of Four",
+      "type": "movie",
+      "archive_org_id": "TheSignOfFour1932",
+      "year": 1932,
+      "tmdb_id": 43542
+    },
+    {
+      "title": "The Beverly Hillbillies",
+      "type": "series",
+      "archive_org_id": "beverly_hillbillies",
+      "year": 1962,
+      "tmdb_id": 2139
+    }
+  ]
+}

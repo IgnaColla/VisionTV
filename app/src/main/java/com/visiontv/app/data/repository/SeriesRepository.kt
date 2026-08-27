@@ -4,15 +4,22 @@ import com.visiontv.app.data.model.Channel
 import com.visiontv.app.data.model.Episode
 import com.visiontv.app.data.model.PlaylistSource
 import com.visiontv.app.data.model.Series
-import com.visiontv.app.util.AppLogger
 
 class SeriesRepository(
     private val iptvRepository: IptvRepository = IptvRepository(),
-    private val tmdbRepository: TmdbRepository = TmdbRepository()
+    private val tmdbRepository: TmdbRepository = TmdbRepository(),
+    private val publicDomainRepository: PublicDomainRepository? = null
 ) {
     private val episodeRegex = Regex("(?i)(.*)\\s+S(\\d+)E(\\d+)(.*)")
 
     suspend fun getSeries(playlists: List<PlaylistSource>): List<Series> {
+        val iptvSeries = fetchIptvSeries(playlists)
+        val pdSeries = publicDomainRepository?.getPublicDomainContent()?.second ?: emptyList()
+        
+        return (iptvSeries + pdSeries).distinctBy { it.title }
+    }
+
+    private suspend fun fetchIptvSeries(playlists: List<PlaylistSource>): List<Series> {
         val channels = iptvRepository.fetchAllPlaylists(playlists)
         val seriesMap = mutableMapOf<String, MutableList<Channel>>()
 

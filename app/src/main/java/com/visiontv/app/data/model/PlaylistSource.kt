@@ -4,7 +4,8 @@ package com.visiontv.app.data.model
 enum class PlaylistSourceType {
     LIVE_TV,
     MOVIES,
-    SERIES
+    SERIES,
+    PUBLIC_DOMAIN
 }
 
 data class PlaylistSource(

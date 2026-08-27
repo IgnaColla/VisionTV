@@ -1,5 +1,7 @@
 package com.visiontv.app.util
 
+import com.visiontv.app.data.remote.ArchiveOrgService
+import com.visiontv.app.data.remote.PublicDomainCatalogService
 import com.visiontv.app.data.remote.TmdbService
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -16,7 +18,7 @@ object NetworkModule {
             .build()
     }
 
-    private val retrofit: Retrofit by lazy {
+    private val tmdbRetrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl("https://api.themoviedb.org/3/")
             .client(httpClient)
@@ -24,7 +26,31 @@ object NetworkModule {
             .build()
     }
 
+    private val archiveRetrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://archive.org/")
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    private val githubRetrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://raw.githubusercontent.com/")
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
     val tmdbService: TmdbService by lazy {
-        retrofit.create(TmdbService::class.java)
+        tmdbRetrofit.create(TmdbService::class.java)
+    }
+
+    val archiveService: ArchiveOrgService by lazy {
+        archiveRetrofit.create(ArchiveOrgService::class.java)
+    }
+
+    val catalogService: PublicDomainCatalogService by lazy {
+        githubRetrofit.create(PublicDomainCatalogService::class.java)
     }
 }

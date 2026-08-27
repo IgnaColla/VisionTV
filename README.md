@@ -11,6 +11,7 @@
 - 📡 **Live TV** — Stream live channels from M3U/IPTV playlists.
 - 🇦🇷 **Argentina First** — Automatically identifies and prioritizes Argentinian channels in a dedicated "Argentina" home row.
 - 🎬 **Movies & Series** — Browse and play VOD content with a Netflix-style UI, automatically enriched with TMDB metadata.
+- ⚖️ **Legal Public Domain Catalog** — Built-in, legally-safe catalog of movies and series sourced from **Internet Archive**.
 - ➕ **Playlist Manager** — Add and manage multiple M3U playlist URLs for different content types.
 - 🔎 **Search & Filter** — Instant search by title and filter by category/genre within each section.
 - ❤️ **Favorites & Recents** — Quick access to your favorite and recently viewed channels.
@@ -58,7 +59,16 @@ VisionTV uses `local.properties` to manage sensitive information securely.
 
 > ℹ️ Get your token at [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) under the "API Read Access Token" section.
 
-### 2. Build & run
+### 2. Configure Catalog Automation (Optional)
+
+The app's public domain catalog is automatically updated via GitHub Actions. To enable this in your fork:
+1.  Go to **Settings > Secrets and variables > Actions** in your GitHub repo.
+2.  Add a **New repository secret**:
+    -   Name: `TMDB_TOKEN`
+    -   Value: Your TMDB API token (same as above).
+3.  The catalog will now refresh weekly or when manually triggered from the **Actions** tab.
+
+### 3. Build & run
 
 Run the project on an **Android TV emulator** or physical device for the best experience. The app will also work on standard Android phones.
 
@@ -90,5 +100,6 @@ that generates revenue is strictly prohibited.
 ## 🙏 Acknowledgements
 
 - [The Movie Database (TMDB)](https://www.themoviedb.org/) — metadata API
+- [Internet Archive](https://archive.org/) — public domain catalog source
 - [AndroidX Media3](https://github.com/androidx/media) — video playback
 - [IPTV-org](https://iptv-org.github.io/) — playlist resources

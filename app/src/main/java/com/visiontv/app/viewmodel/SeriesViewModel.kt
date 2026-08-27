@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.visiontv.app.data.model.PlaylistSource
 import com.visiontv.app.data.model.PlaylistSourceType
 import com.visiontv.app.data.model.Series
+import com.visiontv.app.data.repository.PublicDomainRepository
 import com.visiontv.app.data.repository.SeriesRepository
 import com.visiontv.app.util.AppLogger
 import com.visiontv.app.util.PreferencesManager
@@ -16,10 +17,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class SeriesViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val seriesRepository = SeriesRepository()
+    private val seriesRepository = SeriesRepository(
+        publicDomainRepository = PublicDomainRepository(application)
+    )
     private val preferences = PreferencesManager(application)
 
     private val _uiState = MutableStateFlow(SeriesUiState())
@@ -83,7 +87,7 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     applyFilters()
                 }
-                delay(100)
+                delay(100.milliseconds)
             }
         }
     }

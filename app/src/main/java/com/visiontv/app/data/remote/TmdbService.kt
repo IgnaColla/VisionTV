@@ -63,12 +63,24 @@ data class TmdbSearchResponse(
 
 data class TmdbMovieDetails(
     val id: Int,
+    val title: String?,
+    @SerializedName("poster_path") val posterPath: String?,
+    @SerializedName("backdrop_path") val backdropPath: String?,
+    val overview: String?,
+    @SerializedName("vote_average") val voteAverage: Double?,
+    @SerializedName("release_date") val releaseDate: String?,
     val runtime: Int?,
     val genres: List<TmdbGenre>?
 )
 
 data class TmdbSeriesDetails(
     val id: Int,
+    val name: String?,
+    @SerializedName("poster_path") val posterPath: String?,
+    @SerializedName("backdrop_path") val backdropPath: String?,
+    val overview: String?,
+    @SerializedName("vote_average") val voteAverage: Double?,
+    @SerializedName("first_air_date") val firstAirDate: String?,
     @SerializedName("episode_run_time") val episodeRunTime: List<Int>?,
     val genres: List<TmdbGenre>?
 )

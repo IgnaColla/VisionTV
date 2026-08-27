@@ -12,5 +12,6 @@ data class Movie(
     val releaseYear: String? = null,
     val runtimeMinutes: Int? = null,
     val genres: List<String> = emptyList(),
-    val category: String = "General"
+    val category: String = "General",
+    val sourceType: PlaylistSourceType = PlaylistSourceType.MOVIES
 )

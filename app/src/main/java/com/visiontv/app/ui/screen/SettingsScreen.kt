@@ -177,6 +177,7 @@ private fun PlaylistItem(
                         PlaylistSourceType.LIVE_TV -> stringResource(R.string.type_live_tv)
                         PlaylistSourceType.MOVIES -> stringResource(R.string.type_movies)
                         PlaylistSourceType.SERIES -> stringResource(R.string.type_series)
+                        PlaylistSourceType.PUBLIC_DOMAIN -> "⚖️ Public Domain"
                     },
                     color = Color(0xFF90CAF9),
                     fontSize = 12.sp,
@@ -280,6 +281,7 @@ private fun AddPlaylistDialog(
                             PlaylistSourceType.LIVE_TV -> stringResource(R.string.nav_live_tv)
                             PlaylistSourceType.MOVIES -> stringResource(R.string.nav_movies)
                             PlaylistSourceType.SERIES -> stringResource(R.string.nav_series)
+                            PlaylistSourceType.PUBLIC_DOMAIN -> "Public Domain"
                         },
                         onValueChange = {},
                         label = { androidx.compose.material3.Text(stringResource(R.string.playlist_type)) },

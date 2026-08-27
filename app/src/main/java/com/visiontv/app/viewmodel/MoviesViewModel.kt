@@ -7,9 +7,9 @@ import com.visiontv.app.data.model.Movie
 import com.visiontv.app.data.model.PlaylistSource
 import com.visiontv.app.data.model.PlaylistSourceType
 import com.visiontv.app.data.repository.MovieRepository
+import com.visiontv.app.data.repository.PublicDomainRepository
 import com.visiontv.app.util.AppLogger
 import com.visiontv.app.util.PreferencesManager
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,11 +17,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.milliseconds
 
 class MoviesViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val movieRepository = MovieRepository()
+    private val movieRepository = MovieRepository(
+        publicDomainRepository = PublicDomainRepository(application)
+    )
     private val preferences = PreferencesManager(application)
 
     private val _uiState = MutableStateFlow(MoviesUiState())
@@ -86,7 +88,7 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
                     applyFilters()
                 }
                 // Rate limiting to avoid hitting API limits
-                delay(100)
+                delay(100.milliseconds)
             }
         }
     }
