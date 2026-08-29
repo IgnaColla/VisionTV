@@ -5,29 +5,26 @@ import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.visiontv.app.util.NetworkModule
 
 object ExoPlayerFactory {
 
     @OptIn(UnstableApi::class)
     fun create(context: Context): Pair<ExoPlayer, HeaderDataSourceFactory> {
-        // Set common headers used by IPTV players to avoid 403 Forbidden errors
         val defaultRequestProperties = mutableMapOf<String, String>()
         defaultRequestProperties["Accept"] = "*/*"
         defaultRequestProperties["Connection"] = "keep-alive"
-        defaultRequestProperties["Icy-MetaData"] = "1"
-        // Most IPTV streams work better with a generic but modern desktop User-Agent
+        
+        // Exact match with common browser headers
         val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
 
-        // High-performance HTTP data source with custom timeouts and User-Agent
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+        // High-performance OkHttp data source (reusing the app's optimized client)
+        val httpDataSourceFactory = OkHttpDataSource.Factory(NetworkModule.httpClient)
             .setUserAgent(userAgent)
             .setDefaultRequestProperties(defaultRequestProperties)
-            .setConnectTimeoutMs(20000)
-            .setReadTimeoutMs(20000)
-            .setAllowCrossProtocolRedirects(true)
 
         val headerDataSourceFactory = HeaderDataSourceFactory(httpDataSourceFactory)
 

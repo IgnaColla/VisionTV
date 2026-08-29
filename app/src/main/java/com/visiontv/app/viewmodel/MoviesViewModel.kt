@@ -41,9 +41,13 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
             ) { playlists, favorites ->
                 Pair(playlists, favorites)
             }.collect { (playlists, favorites) ->
-                _uiState.update { it.copy(favorites = favorites) }
-                if (_uiState.value.movies.isEmpty() && !uiState.value.isLoading) {
-                    loadMovies(playlists.filter { it.type == PlaylistSourceType.MOVIES })
+                val moviesPlaylists = playlists.filter { it.type == PlaylistSourceType.MOVIES }
+                val playlistsChanged = moviesPlaylists != _uiState.value.playlists.filter { it.type == PlaylistSourceType.MOVIES }
+                
+                _uiState.update { it.copy(favorites = favorites, playlists = playlists) }
+                
+                if ((_uiState.value.movies.isEmpty() && !uiState.value.isLoading) || playlistsChanged) {
+                    loadMovies(moviesPlaylists)
                 } else {
                     applyFilters()
                 }
@@ -160,10 +164,16 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun applyFilters() {
         _uiState.update { state ->
-            var filtered = if (state.activeCategory == "All") state.movies
-            else state.movies.filter { it.category == state.activeCategory }
+            val isSearching = state.searchQuery.isNotBlank()
             
-            if (state.searchQuery.isNotBlank()) {
+            var filtered = if (isSearching) {
+                state.movies
+            } else {
+                if (state.activeCategory == "All") state.movies
+                else state.movies.filter { it.category == state.activeCategory }
+            }
+            
+            if (isSearching) {
                 val q = state.searchQuery.trim().lowercase()
                 filtered = filtered.filter { it.title.lowercase().contains(q) }
             }

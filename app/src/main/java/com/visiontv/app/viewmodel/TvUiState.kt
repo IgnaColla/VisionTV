@@ -14,6 +14,9 @@ data class TvUiState(
     val activeCategory: String = "Argentina",
     val searchQuery: String = "",
     val favorites: Set<String> = emptySet(),
+    val deadChannels: Set<String> = emptySet(),
+    val showOnlyWorking: Boolean = false,
+    val isValidating: Boolean = false,
     val playlists: List<PlaylistSource> = emptyList(),
     val selectedChannel: Channel? = null
 )

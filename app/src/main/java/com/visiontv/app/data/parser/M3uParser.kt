@@ -6,7 +6,7 @@ import java.util.regex.Pattern
 
 class M3uParser {
 
-    private val attributePattern = Pattern.compile("""([A-Za-z0-9\\-]+)="(.*?)"""")
+    private val attributePattern = Pattern.compile("""([A-Za-z0-9\-_]+)\s*=\s*["'](.*?)["']""")
 
     fun parse(content: String): List<Channel> {
         val lines = content
@@ -34,6 +34,17 @@ class M3uParser {
                     }
                 }
 
+                line.startsWith("#EXTHTTP", ignoreCase = true) -> {
+                    // Support for #EXTHTTP:{"User-Agent":"..."}
+                    runCatching {
+                        val json = line.substringAfter(":").trim()
+                        val jsonObj = org.json.JSONObject(json)
+                        jsonObj.keys().forEach { key ->
+                            pendingHeaders[key] = jsonObj.getString(key)
+                        }
+                    }
+                }
+
                 line.startsWith("#") -> {
                     continue
                 }
@@ -50,11 +61,7 @@ class M3uParser {
                             if (kv.size == 2) {
                                 val key = kv[0].trim()
                                 val value = kv[1].trim()
-                                when {
-                                    key.equals("User-Agent", ignoreCase = true) -> pendingHeaders["User-Agent"] = value
-                                    key.equals("Referer", ignoreCase = true) -> pendingHeaders["Referer"] = value
-                                    key.equals("Origin", ignoreCase = true) -> pendingHeaders["Origin"] = value
-                                }
+                                pendingHeaders[key] = value
                             }
                         }
                     }
@@ -81,6 +88,16 @@ class M3uParser {
         }
 
         val attrs = extractAttributes(extinf)
+        
+        // Extract headers from attributes if present (e.g. http-user-agent="...")
+        val mergedHeaders = headers.toMutableMap()
+        attrs.forEach { (key, value) ->
+            when {
+                key.equals("http-user-agent", ignoreCase = true) -> mergedHeaders["User-Agent"] = value
+                key.equals("http-referrer", ignoreCase = true) -> mergedHeaders["Referer"] = value
+                key.equals("http-referer", ignoreCase = true) -> mergedHeaders["Referer"] = value
+            }
+        }
 
         return Channel(
             id = attrs["tvg-id"] ?: UUID.nameUUIDFromBytes(url.toByteArray()).toString(),
@@ -92,7 +109,7 @@ class M3uParser {
             tvgId = attrs["tvg-id"],
             tvgName = attrs["tvg-name"],
             tvgChno = attrs["tvg-chno"],
-            headers = headers
+            headers = mergedHeaders.toMap()
         )
     }
 

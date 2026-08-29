@@ -1,5 +1,6 @@
 package com.visiontv.app.viewmodel
 
+import com.visiontv.app.data.model.PlaylistSource
 import com.visiontv.app.data.model.Series
 
 data class SeriesUiState(
@@ -11,5 +12,6 @@ data class SeriesUiState(
     val activeCategory: String = "All",
     val searchQuery: String = "",
     val favorites: Set<String> = emptySet(),
+    val playlists: List<PlaylistSource> = emptyList(),
     val selectedSeries: Series? = null
 )

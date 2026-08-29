@@ -2,33 +2,33 @@
 
 [versions]
 # Toolchain
-kotlin          = "2.4.0"
-agp             = "9.2.1"
+kotlin          = "2.4.10"
+agp             = "9.3.2"
 
 # Compose
-composeBom      = "2026.05.01"
+composeBom      = "2026.08.00"
 
 # AndroidX TV
 tvMaterial      = "1.1.0"
 tvFoundation    = "1.0.0"
 
 # Navigation
-navigation      = "2.9.8"
+navigation      = "2.10.0"
 
 # Lifecycle / ViewModel
-lifecycle       = "2.10.0"
+lifecycle       = "2.11.0"
 
 # Coroutines
 coroutines      = "1.11.0"
 
 # Media3 / ExoPlayer
-media3          = "1.10.1"
+media3          = "1.11.0"
 
 # Networking
 retrofit        = "3.0.0"
 
 # Imágenes
-coil            = "3.4.0"
+coil            = "3.6.0"
 
 # Persistencia
 datastore       = "1.2.1"
@@ -56,6 +56,7 @@ coroutines-android      = { group = "org.jetbrains.kotlinx",    name = "kotlinx-
 media3-exoplayer        = { group = "androidx.media3",           name = "media3-exoplayer",               version.ref = "media3" }
 media3-hls              = { group = "androidx.media3",           name = "media3-exoplayer-hls",           version.ref = "media3" }
 media3-ui               = { group = "androidx.media3",           name = "media3-ui",                     version.ref = "media3" }
+media3-okhttp           = { group = "androidx.media3",          name = "media3-datasource-okhttp",       version.ref = "media3" }
 retrofit                = { group = "com.squareup.retrofit2",    name = "retrofit",                       version.ref = "retrofit" }
 retrofit-gson           = { group = "com.squareup.retrofit2",    name = "converter-gson",                 version.ref = "retrofit" }
 coil-compose            = { group = "io.coil-kt.coil3",         name = "coil-compose",                   version.ref = "coil" }

@@ -1,6 +1,7 @@
 package com.visiontv.app.viewmodel
 
 import com.visiontv.app.data.model.Movie
+import com.visiontv.app.data.model.PlaylistSource
 
 data class MoviesUiState(
     val isLoading: Boolean = false,
@@ -11,5 +12,6 @@ data class MoviesUiState(
     val activeCategory: String = "All",
     val searchQuery: String = "",
     val favorites: Set<String> = emptySet(),
+    val playlists: List<PlaylistSource> = emptyList(),
     val selectedMovie: Movie? = null
 )

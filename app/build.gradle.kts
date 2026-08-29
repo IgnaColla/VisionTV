@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.visiontv.app"
-        minSdk        = 23
+        minSdk        = 24
         targetSdk     = 37
         versionCode   = 1
         versionName   = "1.0.0"
@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.hls)
     implementation(libs.media3.ui)
+    implementation(libs.media3.okhttp)
 
     // Networking
     implementation(libs.retrofit)

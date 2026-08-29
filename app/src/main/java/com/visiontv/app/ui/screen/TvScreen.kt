@@ -23,8 +23,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoDelete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -130,6 +133,70 @@ fun TvScreen(
                     },
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            // Cleanup button
+            Box(
+                modifier = Modifier
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (uiState.isValidating) Color.Gray else Color(0xFFEF9A9A))
+                    .clickable(enabled = !uiState.isValidating) { viewModel.startCleanup() }
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (uiState.isValidating) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.AutoDelete,
+                            contentDescription = "Cleanup",
+                            tint = Color.Black,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Text(
+                        text = if (uiState.isValidating) "Validating..." else "Cleanup",
+                        color = Color.Black,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+
+            // Show Working Toggle
+            if (uiState.deadChannels.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(if (uiState.showOnlyWorking) Color(0xFF4CAF50) else Color(0xFF1C1C1E))
+                        .clickable { viewModel.toggleShowOnlyWorking() }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (uiState.showOnlyWorking) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                            contentDescription = "Filter",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = if (uiState.showOnlyWorking) "Working Only" else "Show All",
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
 
             // Refresh button
@@ -249,12 +316,18 @@ fun TvScreen(
 
                 else -> {
                     // Home View with Rows
+                    val baseList = if (uiState.showOnlyWorking) {
+                        uiState.channels.filter { !uiState.deadChannels.contains(it.url) }
+                    } else {
+                        uiState.channels
+                    }
+
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
                         // Row 1: Argentina
-                        val argentinaChannels = uiState.channels.filter { channel ->
+                        val argentinaChannels = baseList.filter { channel ->
                             (channel.country?.uppercase() == "AR") || 
                             channel.name.contains("Argentina", ignoreCase = true) ||
                             channel.category.contains("Argentina", ignoreCase = true)
@@ -272,22 +345,26 @@ fun TvScreen(
                         }
 
                         // Row 2: Favorites & Recents
-                        val favoriteChannels = uiState.channels.filter { uiState.favorites.contains(it.url) }
+                        val favoriteChannels = baseList.filter { uiState.favorites.contains(it.url) }
                         if (favoriteChannels.isNotEmpty() || uiState.recentChannels.isNotEmpty()) {
                             item {
-                                val combined = (uiState.recentChannels + favoriteChannels).distinctBy { it.url }
-                                ChannelRow(
-                                    title = "Favorites & Recent",
-                                    channels = combined,
-                                    favorites = uiState.favorites,
-                                    onChannelClick = viewModel::selectChannel,
-                                    onToggleFavorite = viewModel::toggleFavorite
-                                )
+                                // Filter recents as well
+                                val recentFiltered = uiState.recentChannels.filter { !uiState.showOnlyWorking || !uiState.deadChannels.contains(it.url) }
+                                val combined = (recentFiltered + favoriteChannels).distinctBy { it.url }
+                                if (combined.isNotEmpty()) {
+                                    ChannelRow(
+                                        title = "Favorites & Recent",
+                                        channels = combined,
+                                        favorites = uiState.favorites,
+                                        onChannelClick = viewModel::selectChannel,
+                                        onToggleFavorite = viewModel::toggleFavorite
+                                    )
+                                }
                             }
                         }
 
                         // Row 3: Others
-                        val others = uiState.channels.filter { channel ->
+                        val others = baseList.filter { channel ->
                             !argentinaChannels.any { it.url == channel.url } &&
                             !favoriteChannels.any { it.url == channel.url }
                         }

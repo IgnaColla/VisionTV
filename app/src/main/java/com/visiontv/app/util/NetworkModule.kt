@@ -15,6 +15,20 @@ object NetworkModule {
             .readTimeout(30, TimeUnit.SECONDS)
             .followRedirects(true)
             .followSslRedirects(true)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val newRequestBuilder = request.newBuilder()
+                
+                // Only add headers if they are not already set (don't overwrite channel-specific headers)
+                if (request.header("User-Agent") == null) {
+                    newRequestBuilder.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                }
+                if (request.header("Accept") == null) {
+                    newRequestBuilder.header("Accept", "*/*")
+                }
+                
+                chain.proceed(newRequestBuilder.build())
+            }
             .build()
     }
 

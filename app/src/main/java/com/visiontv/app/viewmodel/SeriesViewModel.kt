@@ -41,9 +41,13 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
             ) { playlists, favorites ->
                 Pair(playlists, favorites)
             }.collect { (playlists, favorites) ->
-                _uiState.update { it.copy(favorites = favorites) }
-                if (_uiState.value.series.isEmpty() && !uiState.value.isLoading) {
-                    loadSeries(playlists.filter { it.type == PlaylistSourceType.SERIES })
+                val seriesPlaylists = playlists.filter { it.type == PlaylistSourceType.SERIES }
+                val playlistsChanged = seriesPlaylists != _uiState.value.playlists.filter { it.type == PlaylistSourceType.SERIES }
+                
+                _uiState.update { it.copy(favorites = favorites, playlists = playlists) }
+                
+                if ((_uiState.value.series.isEmpty() && !uiState.value.isLoading) || playlistsChanged) {
+                    loadSeries(seriesPlaylists)
                 } else {
                     applyFilters()
                 }
@@ -170,10 +174,16 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun applyFilters() {
         _uiState.update { state ->
-            var filtered = if (state.activeCategory == "All") state.series
-            else state.series.filter { it.category == state.activeCategory }
+            val isSearching = state.searchQuery.isNotBlank()
             
-            if (state.searchQuery.isNotBlank()) {
+            var filtered = if (isSearching) {
+                state.series
+            } else {
+                if (state.activeCategory == "All") state.series
+                else state.series.filter { it.category == state.activeCategory }
+            }
+            
+            if (isSearching) {
                 val q = state.searchQuery.trim().lowercase()
                 filtered = filtered.filter { it.title.lowercase().contains(q) }
             }

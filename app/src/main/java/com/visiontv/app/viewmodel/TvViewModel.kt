@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.visiontv.app.data.model.Channel
+import com.visiontv.app.data.model.PlaylistSource
+import com.visiontv.app.data.repository.IptvOrgRepository
 import com.visiontv.app.data.repository.IptvRepository
 import com.visiontv.app.util.AppLogger
 import com.visiontv.app.util.PreferencesManager
@@ -13,13 +15,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 class TvViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = IptvRepository()
+    private val iptvOrgRepository = IptvOrgRepository(repository)
     private val preferences = PreferencesManager(application)
 
-    private val _uiState = MutableStateFlow(TvUiState(activeCategory = "Argentina"))
+    private val _uiState = MutableStateFlow(TvUiState(activeCategory = "All"))
     val uiState: StateFlow<TvUiState> = _uiState.asStateFlow()
 
     init {
@@ -35,6 +41,9 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
             ) { playlists, favorites, recents ->
                 Triple(playlists, favorites, recents)
             }.collect { (playlists, favorites, recentUrls) ->
+                val currentPlaylists = _uiState.value.playlists
+                val playlistsChanged = playlists != currentPlaylists
+                
                 _uiState.update { currentState ->
                     val recentChannels = recentUrls.mapNotNull { url -> 
                         currentState.channels.find { it.url == url } 
@@ -47,8 +56,8 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 
-                if (_uiState.value.channels.isEmpty()) {
-                    refreshChannels()
+                if (_uiState.value.channels.isEmpty() || playlistsChanged) {
+                    refreshChannels(playlists)
                 } else {
                     applyFilters()
                 }
@@ -56,13 +65,17 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun refreshChannels() {
+    fun refreshChannels(playlists: List<PlaylistSource>? = null) {
+        val targetPlaylists = playlists ?: _uiState.value.playlists
+        
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            AppLogger.info("Loading playlists...", listOf("tv", "playlist"))
+            AppLogger.info("Loading ${targetPlaylists.size} playlists...", listOf("tv", "playlist"))
             
             runCatching {
-                repository.fetchAllPlaylists(_uiState.value.playlists)
+                val userChannels = repository.fetchAllPlaylists(targetPlaylists)
+                val officialArgentina = iptvOrgRepository.getArgentinaChannels()
+                (userChannels + officialArgentina).distinctBy { it.url }
             }.onSuccess { channels ->
                 AppLogger.info("${channels.size} channels loaded", listOf("tv", "playlist"))
                 _uiState.update { currentState ->
@@ -115,18 +128,67 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(selectedChannel = null) }
     }
 
+    fun toggleShowOnlyWorking() {
+        _uiState.update { it.copy(showOnlyWorking = !it.showOnlyWorking) }
+        applyFilters()
+    }
+
+    fun startCleanup() {
+        if (_uiState.value.isValidating) return
+        
+        viewModelScope.launch {
+            _uiState.update { it.copy(isValidating = true, showOnlyWorking = true) }
+            val channels = _uiState.value.channels
+            AppLogger.info("Starting cleanup for ${channels.size} channels...", listOf("tv", "cleanup"))
+            
+            // Validate in chunks
+            channels.chunked(30).forEach { chunk ->
+                val deadInChunk = mutableSetOf<String>()
+                coroutineScope {
+                    chunk.map { channel ->
+                        async {
+                            if (!repository.validateChannel(channel.url, channel.headers)) {
+                                synchronized(deadInChunk) { deadInChunk.add(channel.url) }
+                            }
+                        }
+                    }.awaitAll()
+                }
+                
+                _uiState.update { it.copy(deadChannels = it.deadChannels + deadInChunk) }
+                applyFilters() // Update list visually while working
+            }
+            
+            _uiState.update { it.copy(isValidating = false) }
+            AppLogger.info("Cleanup finished. Found ${_uiState.value.deadChannels.size} dead channels.", listOf("tv", "cleanup"))
+        }
+    }
+
     private fun applyFilters() {
         _uiState.update { state ->
-            var filtered = when (state.activeCategory) {
-                "Argentina" -> state.channels.filter { isArgentina(it) }
-                "Other" -> state.channels.filter { !isArgentina(it) }
-                "Favorites" -> state.channels.filter { state.favorites.contains(it.url) }
-                "All" -> state.channels
-                else -> state.channels.filter {
-                    repository.getBaseCategory(it.category) == state.activeCategory
+            val isSearching = state.searchQuery.isNotBlank()
+            
+            val baseList = if (state.showOnlyWorking) {
+                state.channels.filter { !state.deadChannels.contains(it.url) }
+            } else {
+                state.channels
+            }
+            
+            var filtered = if (isSearching) {
+                // Global search across all channels
+                baseList
+            } else {
+                when (state.activeCategory) {
+                    "Argentina" -> baseList.filter { isArgentina(it) }
+                    "Other" -> baseList.filter { !isArgentina(it) }
+                    "Favorites" -> baseList.filter { state.favorites.contains(it.url) }
+                    "All" -> baseList
+                    else -> baseList.filter {
+                        repository.getBaseCategory(it.category) == state.activeCategory
+                    }
                 }
             }
-            if (state.searchQuery.isNotBlank()) {
+            
+            if (isSearching) {
                 val q = state.searchQuery.trim().lowercase()
                 filtered = filtered.filter { it.name.lowercase().contains(q) }
             }
