@@ -1,5 +1,5 @@
 {
-  "catalog_version": 1787861313,
+  "catalog_version": 1788054812,
   "items": [
     {
       "title": "About Bananas",
@@ -170,18 +170,18 @@
       "tmdb_id": 578046
     },
     {
-      "title": "Sita Sings the Blues",
-      "type": "movie",
-      "archive_org_id": "Sita_Sings_the_Blues",
-      "year": 2008,
-      "tmdb_id": 20529
-    },
-    {
       "title": "Duck and Cover",
       "type": "movie",
       "archive_org_id": "DuckandC1951",
       "year": 1951,
       "tmdb_id": 52230
+    },
+    {
+      "title": "Sita Sings the Blues",
+      "type": "movie",
+      "archive_org_id": "Sita_Sings_the_Blues",
+      "year": 2008,
+      "tmdb_id": 20529
     },
     {
       "title": "The Pied Piper of Hamelin",
@@ -254,18 +254,18 @@
       "tmdb_id": 20246
     },
     {
-      "title": "Tarzan's Revenge",
-      "type": "movie",
-      "archive_org_id": "tarzans_revenge",
-      "year": 1938,
-      "tmdb_id": 76089
-    },
-    {
       "title": "The Naked Witch",
       "type": "movie",
       "archive_org_id": "TheNakedWitch",
       "year": null,
       "tmdb_id": 100671
+    },
+    {
+      "title": "Tarzan's Revenge",
+      "type": "movie",
+      "archive_org_id": "tarzans_revenge",
+      "year": 1938,
+      "tmdb_id": 76089
     },
     {
       "title": "McLintock!",
