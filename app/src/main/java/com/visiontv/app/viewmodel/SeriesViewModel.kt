@@ -62,11 +62,12 @@ class SeriesViewModel(application: Application) : AndroidViewModel(application) 
             runCatching {
                 seriesRepository.getSeries(playlists)
             }.onSuccess { seriesList ->
+                val sortedSeries = seriesList.sortedBy { it.title.trim().lowercase() }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        series = seriesList,
-                        categories = buildCategories(seriesList)
+                        series = sortedSeries,
+                        categories = buildCategories(sortedSeries)
                     )
                 }
                 applyFilters()

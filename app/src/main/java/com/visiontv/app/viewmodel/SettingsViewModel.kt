@@ -28,11 +28,31 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun showAddDialog() {
-        _uiState.update { it.copy(showAddDialog = true) }
+        _uiState.update { it.copy(showAddDialog = true, editingPlaylist = null) }
+    }
+
+    fun showEditDialog(playlist: PlaylistSource) {
+        _uiState.update { 
+            it.copy(
+                showAddDialog = true, 
+                editingPlaylist = playlist,
+                newPlaylistName = playlist.name,
+                newPlaylistUrl = playlist.url,
+                newPlaylistType = playlist.type
+            ) 
+        }
     }
 
     fun hideAddDialog() {
-        _uiState.update { it.copy(showAddDialog = false, errorMessage = null, newPlaylistName = "", newPlaylistUrl = "") }
+        _uiState.update { 
+            it.copy(
+                showAddDialog = false, 
+                errorMessage = null, 
+                newPlaylistName = "", 
+                newPlaylistUrl = "",
+                editingPlaylist = null
+            ) 
+        }
     }
 
     fun updateNewName(name: String) {
@@ -55,19 +75,31 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
 
         viewModelScope.launch {
+            val current = state.playlists.toMutableList()
             val newPlaylist = PlaylistSource(state.newPlaylistName, state.newPlaylistUrl, state.newPlaylistType)
-            val current = _uiState.value.playlists
-            if (current.any { it.url == newPlaylist.url }) {
-                _uiState.update { it.copy(errorMessage = "URL already exists") }
-                return@launch
+            
+            if (state.editingPlaylist != null) {
+                // Update existing
+                val index = current.indexOfFirst { it.url == state.editingPlaylist.url }
+                if (index != -1) {
+                    current[index] = newPlaylist
+                }
+            } else {
+                // Add new
+                if (current.any { it.url == newPlaylist.url }) {
+                    _uiState.update { it.copy(errorMessage = "URL already exists") }
+                    return@launch
+                }
+                current.add(newPlaylist)
             }
 
-            preferences.savePlaylists(current + newPlaylist)
+            preferences.savePlaylists(current)
             _uiState.update { it.copy(
-                successMessage = "Playlist added",
+                successMessage = if (state.editingPlaylist != null) "Playlist updated" else "Playlist added",
                 showAddDialog = false,
                 newPlaylistName = "",
-                newPlaylistUrl = ""
+                newPlaylistUrl = "",
+                editingPlaylist = null
             ) }
         }
     }

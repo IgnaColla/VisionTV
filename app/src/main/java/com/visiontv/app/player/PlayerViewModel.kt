@@ -61,9 +61,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         override fun onPlayerError(error: PlaybackException) {
             val errorDetails = "Code: ${error.errorCode} (${error.errorCodeName})"
             com.visiontv.app.util.AppLogger.error("Playback error: $errorDetails", listOf("ExoPlayer"), error)
+
+            if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                com.visiontv.app.util.AppLogger.info("Recovering from BehindLiveWindowException", listOf("ExoPlayer"))
+                exoPlayer.seekToDefaultPosition()
+                exoPlayer.prepare()
+                return
+            }
+
             _uiState.update { it.copy(
                 isBuffering = false,
                 errorMessage = "Playback error ($errorDetails). Please check your connection.",
+                errorTimestamp = System.currentTimeMillis(),
             ) }
         }
     }
@@ -105,7 +114,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             .apply {
                 // Explicitly set MIME type for HLS if URL contains .m3u8 or it's a Live TV stream
                 if (item.url.contains(".m3u8", ignoreCase = true) ||
-                    item.type == PlaybackType.LIVE_TV) {
+                    (item.type == PlaybackType.LIVE_TV)) {
                     setMimeType(MimeTypes.APPLICATION_M3U8)
                 }
             }
@@ -188,7 +197,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         
         _uiState.update { it.copy(
-            availableResolutions = videoResolutions.distinctBy { res -> res.id }.sortedByDescending { res -> res.height }
+            availableResolutions = videoResolutions.asSequence().distinctBy { res -> res.id }.sortedByDescending { res -> res.height }.toList()
         ) }
     }
 
@@ -213,6 +222,5 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         hideControlsJob?.cancel()
         exoPlayer.removeListener(listener)
         exoPlayer.release()
-        super.onCleared()
     }
 }

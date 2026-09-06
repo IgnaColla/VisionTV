@@ -2,6 +2,7 @@
 package com.visiontv.app
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,5 +17,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             VisionTVApp()
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            // Force ESC to behave like BACK at the activity level
+            onBackPressedDispatcher.onBackPressed()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 }

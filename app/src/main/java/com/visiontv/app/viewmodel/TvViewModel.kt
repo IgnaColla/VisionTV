@@ -25,7 +25,7 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
     private val iptvOrgRepository = IptvOrgRepository(repository)
     private val preferences = PreferencesManager(application)
 
-    private val _uiState = MutableStateFlow(TvUiState(activeCategory = "All"))
+    private val _uiState = MutableStateFlow(TvUiState(activeCategory = "Favorites"))
     val uiState: StateFlow<TvUiState> = _uiState.asStateFlow()
 
     init {
@@ -67,15 +67,18 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshChannels(playlists: List<PlaylistSource>? = null) {
         val targetPlaylists = playlists ?: _uiState.value.playlists
-        
+        if (targetPlaylists.isEmpty()) return
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLoading = it.channels.isEmpty(), errorMessage = null) }
             AppLogger.info("Loading ${targetPlaylists.size} playlists...", listOf("tv", "playlist"))
             
             runCatching {
                 val userChannels = repository.fetchAllPlaylists(targetPlaylists)
                 val officialArgentina = iptvOrgRepository.getArgentinaChannels()
-                (userChannels + officialArgentina).distinctBy { it.url }
+                (userChannels + officialArgentina)
+                    .distinctBy { it.url }
+                    .sortedBy { it.name.trim().lowercase() }
             }.onSuccess { channels ->
                 AppLogger.info("${channels.size} channels loaded", listOf("tv", "playlist"))
                 _uiState.update { currentState ->
@@ -96,7 +99,7 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.update { 
                     it.copy(
                         isLoading = false, 
-                        errorMessage = error.message ?: "Error loading channels"
+                        errorMessage = if (it.channels.isEmpty()) error.message ?: "Error loading channels" else null
                     ) 
                 }
             }
@@ -105,6 +108,11 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+        applyFilters()
+    }
+
+    fun updateCategory(category: String) {
+        _uiState.update { it.copy(activeCategory = category) }
         applyFilters()
     }
 
@@ -142,7 +150,7 @@ class TvViewModel(application: Application) : AndroidViewModel(application) {
             AppLogger.info("Starting cleanup for ${channels.size} channels...", listOf("tv", "cleanup"))
             
             // Validate in chunks
-            channels.chunked(30).forEach { chunk ->
+            channels.chunked(25).forEach { chunk ->
                 val deadInChunk = mutableSetOf<String>()
                 coroutineScope {
                     chunk.map { channel ->

@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -62,6 +63,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -80,7 +82,7 @@ import androidx.tv.material3.ListItem
 private fun ErrorButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var isFocused by remember { mutableStateOf(value = false) }
     
@@ -114,7 +116,7 @@ private fun PlayerControlButton(
     tint: Color = Color.White,
     iconSize: androidx.compose.ui.unit.Dp = 24.dp
 ) {
-    var isFocused by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(value = false) }
     
     IconButton(
         onClick = onClick,
@@ -178,8 +180,9 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(errorMessage) {
-        if (errorMessage != null) {
+    // Every time an error happens (new timestamp), force focus on Retry
+    LaunchedEffect(uiState.errorTimestamp) {
+        if (uiState.errorMessage != null) {
             errorFocusRequester.requestFocus()
         }
     }
@@ -198,7 +201,7 @@ fun PlayerScreen(
             .background(Color.Black)
             .focusRequester(mainFocusRequester)
             .focusable()
-            .onKeyEvent { event ->
+            .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     when (event.key) {
                         Key.Back,
@@ -207,14 +210,14 @@ fun PlayerScreen(
                             true
                         }
                         Key.DirectionUp -> {
-                            if (!uiState.showControls) {
+                            if ((!uiState.showControls) && (errorMessage == null)) {
                                 viewModel.setVolume(uiState.volume + 0.1f)
                                 viewModel.showControlsTemporarily()
                                 true
                             } else false
                         }
                         Key.DirectionDown -> {
-                            if (!uiState.showControls) {
+                            if ((!uiState.showControls) && (errorMessage == null)) {
                                 viewModel.setVolume(uiState.volume - 0.1f)
                                 viewModel.showControlsTemporarily()
                                 true
@@ -224,13 +227,17 @@ fun PlayerScreen(
                         Key.DirectionRight,
                         Key.DirectionCenter,
                         Key.Enter -> {
-                            if (!uiState.showControls) {
+                            if ((!uiState.showControls) && (errorMessage == null)) {
                                 viewModel.showControlsTemporarily()
                                 true
+                            } else if (errorMessage != null) {
+                                errorFocusRequester.requestFocus()
+                                false
                             } else false
                         }
                         else -> {
-                            viewModel.showControlsTemporarily()
+                            if (errorMessage == null) viewModel.showControlsTemporarily()
+                            else errorFocusRequester.requestFocus()
                             false
                         }
                     }
@@ -261,22 +268,46 @@ fun PlayerScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xCC000000)),
+                    .background(Color(0xCC000000))
+                    .onFocusChanged {
+                        if (it.isFocused) {
+                            errorFocusRequester.requestFocus()
+                        }
+                    }
+                    .focusable()
+                    .onPreviewKeyEvent { 
+                        if (it.type == KeyEventType.KeyDown) {
+                            if (it.key == Key.Back || it.key == Key.Escape) {
+                                onClose()
+                                true
+                            } else false
+                        } else false
+                    }
+                    .onKeyEvent { 
+                        if (it.type == KeyEventType.KeyDown) {
+                            if (it.key == Key.DirectionCenter || it.key == Key.Enter) {
+                                false 
+                            } else {
+                                errorFocusRequester.requestFocus()
+                                false 
+                            }
+                        } else false
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.focusProperties {
+                        left = FocusRequester.Cancel
+                        right = FocusRequester.Cancel
+                    }
                 ) {
                     TvText(text = errorMessage, color = Color.White, fontSize = 18.sp)
                     ErrorButton(
                         text = stringResource(R.string.retry),
                         onClick = { viewModel.retry() },
                         modifier = Modifier.focusRequester(errorFocusRequester)
-                    )
-                    ErrorButton(
-                        text = stringResource(R.string.player_back),
-                        onClick = onClose
                     )
                 }
             }

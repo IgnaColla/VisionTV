@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -109,16 +110,24 @@ fun ChannelCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(64.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(Color(0xFF2C2C2E)),
                     contentAlignment = Alignment.Center,
                 ) {
+                    val fallbackPainter = androidx.compose.ui.graphics.vector.rememberVectorPainter(Icons.Default.Tv)
+                    
                     AsyncImage(
                         model = channel.logoUrl,
                         contentDescription = channel.name,
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.White.copy(alpha = 0.05f))
+                            .padding(12.dp),
                         contentScale = ContentScale.Fit,
+                        error = fallbackPainter,
+                        placeholder = fallbackPainter,
+                        alpha = 0.9f
                     )
                 }
             }

@@ -18,10 +18,10 @@ object ExoPlayerFactory {
         defaultRequestProperties["Accept"] = "*/*"
         defaultRequestProperties["Connection"] = "keep-alive"
         
-        // Exact match with common browser headers
-        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        // Use optimized User-Agent and remove redundant hardcoded Origin/Referer
+        val userAgent = NetworkModule.DEFAULT_USER_AGENT
 
-        // High-performance OkHttp data source (reusing the app's optimized client)
+        // High-performance OkHttp data source
         val httpDataSourceFactory = OkHttpDataSource.Factory(NetworkModule.httpClient)
             .setUserAgent(userAgent)
             .setDefaultRequestProperties(defaultRequestProperties)
@@ -32,7 +32,21 @@ object ExoPlayerFactory {
         val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, headerDataSourceFactory)
 
         val player = ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(dataSourceFactory)
+                    .setLiveTargetOffsetMs(8000)
+            )
+            .setLivePlaybackSpeedControl(
+                androidx.media3.exoplayer.DefaultLivePlaybackSpeedControl.Builder()
+                    .setFallbackMaxPlaybackSpeed(1.04f)
+                    .build()
+            )
+            .setLoadControl(
+                androidx.media3.exoplayer.DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(15000, 50000, 2500, 5000)
+                    .setPrioritizeTimeOverSizeThresholds(true)
+                    .build()
+            )
             .build().apply {
                 setAudioAttributes(
                     AudioAttributes.Builder()

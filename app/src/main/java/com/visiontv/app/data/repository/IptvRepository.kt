@@ -21,6 +21,23 @@ class IptvRepository(
 
     suspend fun fetchPlaylist(url: String): List<Channel> = withContext(Dispatchers.IO) {
         AppLogger.info("Fetching: $url", listOf("playlist"))
+        
+        // Support for local files (paths starting with / or file://)
+        if (url.startsWith("/") || url.startsWith("file://")) {
+            return@withContext runCatching {
+                val cleanPath = url.removePrefix("file://")
+                val file = java.io.File(cleanPath)
+                if (!file.exists()) throw java.io.FileNotFoundException("File not found: $cleanPath")
+                val content = file.readText()
+                val channels = parser.parse(content)
+                AppLogger.info("Read ${channels.size} channels from local file $cleanPath", listOf("playlist"))
+                channels
+            }.getOrElse {
+                AppLogger.error("Error reading local file $url: ${it.message}", listOf("playlist", "error"))
+                throw it
+            }
+        }
+
         val request = Request.Builder().url(url).get().build()
         
         runCatching {
@@ -63,30 +80,43 @@ class IptvRepository(
     }
 
     suspend fun validateChannel(url: String, headers: Map<String, String> = emptyMap()): Boolean = withContext(Dispatchers.IO) {
-        // Fast HEAD request with short timeout
-        val shortTimeoutClient = httpClient.newBuilder()
-            .connectTimeout(4, TimeUnit.SECONDS)
-            .readTimeout(4, TimeUnit.SECONDS)
+        // Use a dedicated client for validation with optimized timeouts
+        val validatorClient = httpClient.newBuilder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
             .build()
             
         val requestBuilder = Request.Builder().url(url).head()
-        headers.forEach { (k, v) -> requestBuilder.header(k, v) }
+        
+        // Add common headers for validation
+        requestBuilder.header("User-Agent", headers["User-Agent"] ?: NetworkModule.DEFAULT_USER_AGENT)
+        requestBuilder.header("Accept", "*/*")
+        headers.forEach { (k, v) -> if (k != "User-Agent") requestBuilder.header(k, v) }
         
         val result = runCatching {
-            shortTimeoutClient.newCall(requestBuilder.build()).execute().use { response ->
+            validatorClient.newCall(requestBuilder.build()).execute().use { response ->
+                // HTTP 2xx or 405 (HEAD not allowed)
+                // We no longer accept 403 or 404 as "likely alive"
                 response.isSuccessful || response.code == 405
             }
         }.getOrDefault(false)
 
         if (result) return@withContext true
 
-        // If HEAD fails, try a small GET (some servers block HEAD)
-        // Note: We don't accept 403 (Forbidden) anymore as "alive" if it doesn't play
-        val getBuilder = Request.Builder().url(url).header("Range", "bytes=0-0")
-        headers.forEach { (k, v) -> getBuilder.header(k, v) }
+        // If HEAD fails, try a small GET (some servers block HEAD completely)
+        // Some servers return 403 on HEAD but 200 on GET with Range
+        val getBuilder = Request.Builder()
+            .url(url)
+            .header("Range", "bytes=0-1023") // Request 1KB to be sure
+            .header("User-Agent", headers["User-Agent"] ?: NetworkModule.DEFAULT_USER_AGENT)
+            .header("Accept", "*/*")
+            .get()
+        
+        headers.forEach { (k, v) -> if (k != "User-Agent") getBuilder.header(k, v) }
 
         runCatching {
-            shortTimeoutClient.newCall(getBuilder.build()).execute().use { response ->
+            validatorClient.newCall(getBuilder.build()).execute().use { response ->
+                // 200 (Success) or 206 (Partial Content)
                 response.isSuccessful || response.code == 206
             }
         }.getOrDefault(false)

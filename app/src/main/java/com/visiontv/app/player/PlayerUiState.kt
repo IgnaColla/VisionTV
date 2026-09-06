@@ -6,6 +6,7 @@ data class PlayerUiState(
     val isBuffering: Boolean = false,
     val showControls: Boolean = false,
     val errorMessage: String? = null,
+    val errorTimestamp: Long = 0L, // Unique ID for each error occurrence
     val isEnded: Boolean = false,
     val volume: Float = 1.0f,
     val isFavorite: Boolean = false,

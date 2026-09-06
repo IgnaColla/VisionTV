@@ -18,6 +18,12 @@ class HeaderDataSourceFactory(
 
     override fun createDataSource(): HttpDataSource {
         val dataSource = baseFactory.createDataSource()
+        
+        // Ensure we always have a browser User-Agent if not specified by channel
+        if (dynamicHeaders["User-Agent"] == null) {
+            dataSource.setRequestProperty("User-Agent", com.visiontv.app.util.NetworkModule.DEFAULT_USER_AGENT)
+        }
+        
         dynamicHeaders.forEach { (key, value) ->
             dataSource.setRequestProperty(key, value)
         }

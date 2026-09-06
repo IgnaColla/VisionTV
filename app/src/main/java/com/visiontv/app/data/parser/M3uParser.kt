@@ -96,8 +96,13 @@ class M3uParser {
                 key.equals("http-user-agent", ignoreCase = true) -> mergedHeaders["User-Agent"] = value
                 key.equals("http-referrer", ignoreCase = true) -> mergedHeaders["Referer"] = value
                 key.equals("http-referer", ignoreCase = true) -> mergedHeaders["Referer"] = value
+                key.equals("user-agent", ignoreCase = true) -> mergedHeaders["User-Agent"] = value
+                key.equals("referrer", ignoreCase = true) -> mergedHeaders["Referer"] = value
             }
         }
+
+        // Expanded logo search
+        val logoUrl = attrs["tvg-logo"] ?: attrs["logo"] ?: attrs["icon"] ?: attrs["thumb"] ?: attrs["thumbnail"]
 
         return Channel(
             id = attrs["tvg-id"] ?: UUID.nameUUIDFromBytes(url.toByteArray()).toString(),
@@ -105,7 +110,7 @@ class M3uParser {
             url = url,
             category = attrs["group-title"] ?: "General",
             country = attrs["tvg-country"] ?: attrs["tvg-country-code"],
-            logoUrl = attrs["tvg-logo"],
+            logoUrl = logoUrl,
             tvgId = attrs["tvg-id"],
             tvgName = attrs["tvg-name"],
             tvgChno = attrs["tvg-chno"],

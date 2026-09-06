@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -34,9 +32,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
@@ -47,7 +49,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.visiontv.app.R
-import com.visiontv.app.data.model.Channel
 import com.visiontv.app.data.model.PlaybackItem
 import com.visiontv.app.data.model.PlaybackType
 import com.visiontv.app.ui.component.ChannelCard
@@ -63,9 +64,9 @@ private val BorderColor = Color(0xFF2C2C2E)
 @Composable
 fun TvScreen(
     onPlay: (PlaybackItem) -> Unit,
-    viewModel: TvViewModel = viewModel(),
+    tvViewModel: TvViewModel = viewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by tvViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(uiState.selectedChannel) {
         uiState.selectedChannel?.let { channel ->
@@ -78,7 +79,7 @@ fun TvScreen(
                     headers = channel.headers,
                 ),
             )
-            viewModel.clearSelectedChannel()
+            tvViewModel.clearSelectedChannel()
         }
     }
 
@@ -117,7 +118,7 @@ fun TvScreen(
                 )
                 BasicTextField(
                     value = uiState.searchQuery,
-                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    onValueChange = { tvViewModel.updateSearchQuery(it) },
                     singleLine = true,
                     textStyle = TextStyle(color = AccentWhite, fontSize = 15.sp),
                     cursorBrush = SolidColor(Color(0xFF6366F1)),
@@ -141,7 +142,7 @@ fun TvScreen(
                     .height(44.dp)
                     .clip(RoundedCornerShape(50))
                     .background(if (uiState.isValidating) Color.Gray else Color(0xFFEF9A9A))
-                    .clickable(enabled = !uiState.isValidating) { viewModel.startCleanup() }
+                    .clickable(enabled = !uiState.isValidating) { tvViewModel.startCleanup() }
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -175,7 +176,7 @@ fun TvScreen(
                         .height(44.dp)
                         .clip(RoundedCornerShape(50))
                         .background(if (uiState.showOnlyWorking) Color(0xFF4CAF50) else Color(0xFF1C1C1E))
-                        .clickable { viewModel.toggleShowOnlyWorking() }
+                        .clickable { tvViewModel.toggleShowOnlyWorking() }
                         .padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -205,7 +206,7 @@ fun TvScreen(
                     .height(44.dp)
                     .clip(RoundedCornerShape(50))
                     .background(AccentWhite)
-                    .clickable { viewModel.refreshChannels() }
+                    .clickable { tvViewModel.refreshChannels() }
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -224,6 +225,48 @@ fun TvScreen(
                         color = Color.Black,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        // ── Categories ────────────────────────────────────────────────────
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(HeaderBg)
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(uiState.categories) { cat ->
+                val isActive = cat == uiState.activeCategory
+                var isFocused by remember { mutableStateOf(false) }
+
+                Box(
+                    modifier = Modifier
+                        .onFocusChanged { isFocused = it.isFocused }
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            when {
+                                isActive -> Color.White
+                                isFocused -> Color(0xFF6366F1) // Indigo accent for focus
+                                else -> Color(0xFF1C1C1E)
+                            }
+                        )
+                        .border(
+                            2.dp,
+                            if (isFocused) Color.White else Color.Transparent,
+                            RoundedCornerShape(50)
+                        )
+                        .clickable { tvViewModel.updateCategory(cat) }
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = cat,
+                        color = if (isActive || isFocused) Color.Black else Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = if (isActive || isFocused) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
@@ -269,7 +312,7 @@ fun TvScreen(
                                 .padding(top = 16.dp)
                                 .clip(RoundedCornerShape(50))
                                 .background(SearchBg)
-                                .clickable { viewModel.refreshChannels() }
+                                .clickable { tvViewModel.refreshChannels() }
                                 .padding(horizontal = 24.dp, vertical = 12.dp)
                         ) {
                             Text(
@@ -281,7 +324,7 @@ fun TvScreen(
                     }
                 }
 
-                uiState.channels.isEmpty() -> {
+                uiState.filteredChannels.isEmpty() -> {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -295,10 +338,10 @@ fun TvScreen(
                     }
                 }
 
-                uiState.searchQuery.isNotBlank() -> {
-                    // Search Results View
+                else -> {
+                    // Optimized Grid view for TV
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
+                        columns = GridCells.Fixed(5), // Show 5 items per row
                         contentPadding = PaddingValues(24.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -308,112 +351,12 @@ fun TvScreen(
                             ChannelCard(
                                 channel = channel,
                                 isFavorite = uiState.favorites.contains(channel.url),
-                                onClick = { viewModel.selectChannel(it) },
-                            ) { viewModel.toggleFavorite(it) }
+                                onClick = { tvViewModel.selectChannel(it) },
+                                onToggleFavorite = { tvViewModel.toggleFavorite(it) }
+                            )
                         }
                     }
                 }
-
-                else -> {
-                    // Home View with Rows
-                    val baseList = if (uiState.showOnlyWorking) {
-                        uiState.channels.filter { !uiState.deadChannels.contains(it.url) }
-                    } else {
-                        uiState.channels
-                    }
-
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 24.dp)
-                    ) {
-                        // Row 1: Argentina
-                        val argentinaChannels = baseList.filter { channel ->
-                            (channel.country?.uppercase() == "AR") || 
-                            channel.name.contains("Argentina", ignoreCase = true) ||
-                            channel.category.contains("Argentina", ignoreCase = true)
-                        }
-                        if (argentinaChannels.isNotEmpty()) {
-                            item {
-                                ChannelRow(
-                                    title = "Argentina",
-                                    channels = argentinaChannels,
-                                    favorites = uiState.favorites,
-                                    onChannelClick = viewModel::selectChannel,
-                                    onToggleFavorite = viewModel::toggleFavorite
-                                )
-                            }
-                        }
-
-                        // Row 2: Favorites & Recents
-                        val favoriteChannels = baseList.filter { uiState.favorites.contains(it.url) }
-                        if (favoriteChannels.isNotEmpty() || uiState.recentChannels.isNotEmpty()) {
-                            item {
-                                // Filter recents as well
-                                val recentFiltered = uiState.recentChannels.filter { !uiState.showOnlyWorking || !uiState.deadChannels.contains(it.url) }
-                                val combined = (recentFiltered + favoriteChannels).distinctBy { it.url }
-                                if (combined.isNotEmpty()) {
-                                    ChannelRow(
-                                        title = "Favorites & Recent",
-                                        channels = combined,
-                                        favorites = uiState.favorites,
-                                        onChannelClick = viewModel::selectChannel,
-                                        onToggleFavorite = viewModel::toggleFavorite
-                                    )
-                                }
-                            }
-                        }
-
-                        // Row 3: Others
-                        val others = baseList.filter { channel ->
-                            !argentinaChannels.any { it.url == channel.url } &&
-                            !favoriteChannels.any { it.url == channel.url }
-                        }
-                        if (others.isNotEmpty()) {
-                            item {
-                                ChannelRow(
-                                    title = "Other Channels",
-                                    channels = others,
-                                    favorites = uiState.favorites,
-                                    onChannelClick = viewModel::selectChannel,
-                                    onToggleFavorite = viewModel::toggleFavorite
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChannelRow(
-    title: String,
-    channels: List<Channel>,
-    favorites: Set<String>,
-    onChannelClick: (Channel) -> Unit,
-    onToggleFavorite: (Channel) -> Unit
-) {
-    Column(modifier = Modifier.padding(top = 24.dp)) {
-        Text(
-            text = title,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(channels, key = { it.url }) { channel ->
-                ChannelCard(
-                    channel = channel,
-                    isFavorite = favorites.contains(channel.url),
-                    onClick = onChannelClick,
-                    onToggleFavorite = onToggleFavorite,
-                    modifier = Modifier.width(200.dp)
-                )
             }
         }
     }

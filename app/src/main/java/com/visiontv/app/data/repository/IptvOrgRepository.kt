@@ -14,20 +14,20 @@ class IptvOrgRepository(
 
     suspend fun getArgentinaChannels(): List<Channel> = withContext(Dispatchers.IO) {
         AppLogger.info("Loading official Argentina channel list from iptv-org...", listOf("iptv-org"))
-        runCatching {
+        
+        // Use the master streams list for more reliable links if the country one fails
+        val masterStreamsUrl = "https://raw.githubusercontent.com/iptv-org/iptv/refs/heads/master/streams/ar.m3u"
+        
+        val channels = runCatching {
             iptvRepository.fetchPlaylist(ARGENTINA_M3U_URL)
-        }.onSuccess { channels ->
-            AppLogger.info("Loaded ${channels.size} channels from official AR list", listOf("iptv-org"))
-        }.getOrElse {
-            AppLogger.error("Failed to load official Argentina list: ${it.message}", listOf("iptv-org"), it)
-            emptyList()
-        }.map { channel ->
-            // Ensure AR channels are tagged correctly so they show in the Argentina section
-            if (channel.country.isNullOrBlank()) {
-                channel.copy(country = "AR")
-            } else {
-                channel
-            }
-        }
+        }.getOrElse { emptyList() }
+
+        val backupChannels = runCatching {
+            iptvRepository.fetchPlaylist(masterStreamsUrl)
+        }.getOrElse { emptyList() }
+
+        (channels + backupChannels)
+            .distinctBy { it.url }
+            .map { it.copy(country = "AR") }
     }
 }

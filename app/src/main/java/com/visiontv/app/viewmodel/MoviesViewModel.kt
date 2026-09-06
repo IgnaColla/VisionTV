@@ -62,11 +62,12 @@ class MoviesViewModel(application: Application) : AndroidViewModel(application) 
             runCatching {
                 movieRepository.getMovies(playlists)
             }.onSuccess { movies ->
+                val sortedMovies = movies.sortedBy { it.title.trim().lowercase() }
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        movies = movies,
-                        categories = buildCategories(movies)
+                        movies = sortedMovies,
+                        categories = buildCategories(sortedMovies)
                     )
                 }
                 applyFilters()

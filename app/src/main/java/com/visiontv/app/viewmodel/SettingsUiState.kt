@@ -11,5 +11,6 @@ data class SettingsUiState(
     val showAddDialog: Boolean = false,
     val newPlaylistName: String = "",
     val newPlaylistUrl: String = "",
-    val newPlaylistType: PlaylistSourceType = PlaylistSourceType.LIVE_TV
+    val newPlaylistType: PlaylistSourceType = PlaylistSourceType.LIVE_TV,
+    val editingPlaylist: PlaylistSource? = null
 )

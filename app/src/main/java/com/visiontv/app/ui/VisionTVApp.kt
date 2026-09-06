@@ -1,5 +1,6 @@
 package com.visiontv.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,8 +43,26 @@ fun VisionTVApp() {
     
     var activePlayerItem by remember { mutableStateOf<PlaybackItem?>(null) }
 
+    // Intercept Back button globally if player is active
+    BackHandler(enabled = activePlayerItem != null) {
+        activePlayerItem = null
+    }
+
     VisionTVTheme {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onPreviewKeyEvent { event ->
+                    // Global trap for ESC and Back if the player is open
+                    if (activePlayerItem != null && event.type == KeyEventType.KeyDown) {
+                        if (event.key == Key.Back || event.key == Key.Escape) {
+                            activePlayerItem = null
+                            return@onPreviewKeyEvent true
+                        }
+                    }
+                    false
+                }
+        ) {
             Row(modifier = Modifier.fillMaxSize().background(Color.Black)) {
                 // Sidebar fijo a la izquierda (estilo TV)
                 Box(modifier = Modifier.width(80.dp).fillMaxHeight()) {

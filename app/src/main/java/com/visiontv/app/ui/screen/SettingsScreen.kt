@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -120,6 +121,7 @@ fun SettingsScreen(
                     items(uiState.playlists, key = { it.url }) { playlist ->
                         PlaylistItem(
                             playlist = playlist,
+                            onEdit = { viewModel.showEditDialog(playlist) },
                             onRemove = { viewModel.removePlaylist(playlist) },
                         )
                     }
@@ -147,10 +149,13 @@ fun SettingsScreen(
 @Composable
 private fun PlaylistItem(
     playlist: PlaylistSource,
+    onEdit: () -> Unit,
     onRemove: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onEdit() },
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
     ) {
         Row(
@@ -184,12 +189,21 @@ private fun PlaylistItem(
                 )
             }
 
-            FocusableIconButton(
-                icon = Icons.Default.Delete,
-                contentDescription = stringResource(R.string.playlist_removed),
-                tint = Color(0xFFEF9A9A),
-                onClick = onRemove
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FocusableIconButton(
+                    icon = Icons.Default.Edit,
+                    contentDescription = "Edit Playlist",
+                    tint = Color(0xFF90CAF9),
+                    onClick = onEdit
+                )
+
+                FocusableIconButton(
+                    icon = Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.playlist_removed),
+                    tint = Color(0xFFEF9A9A),
+                    onClick = onRemove
+                )
+            }
         }
     }
 }
