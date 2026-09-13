@@ -1,5 +1,5 @@
 {
-  "catalog_version": 1788658063,
+  "catalog_version": 1789263255,
   "items": [
     {
       "title": "About Bananas",
@@ -373,6 +373,13 @@
       "tmdb_id": 234
     },
     {
+      "title": "Sex Madness",
+      "type": "movie",
+      "archive_org_id": "sex_madness_ACM",
+      "year": 1938,
+      "tmdb_id": 40091
+    },
+    {
       "title": "As You Like It",
       "type": "movie",
       "archive_org_id": "AsYouLikeIt1936",
@@ -385,13 +392,6 @@
       "archive_org_id": "royal_wedding",
       "year": 1951,
       "tmdb_id": 18646
-    },
-    {
-      "title": "Sex Madness",
-      "type": "movie",
-      "archive_org_id": "sex_madness_ACM",
-      "year": 1938,
-      "tmdb_id": 40091
     },
     {
       "title": "Scarlet Street",
@@ -433,7 +433,7 @@
       "type": "movie",
       "archive_org_id": "impact",
       "year": 1949,
-      "tmdb_id": 25503
+      "tmdb_id": 8656
     },
     {
       "title": "Cyrano De Bergerac",
@@ -527,18 +527,18 @@
       "tmdb_id": 618
     },
     {
-      "title": "Don't Be a Sucker",
-      "type": "movie",
-      "archive_org_id": "DontBeaS1947",
-      "year": 1947,
-      "tmdb_id": 429490
-    },
-    {
       "title": "Boys Beware",
       "type": "movie",
       "archive_org_id": "boys_beware",
       "year": 1961,
       "tmdb_id": 44355
+    },
+    {
+      "title": "Don't Be a Sucker",
+      "type": "movie",
+      "archive_org_id": "DontBeaS1947",
+      "year": 1947,
+      "tmdb_id": 429490
     },
     {
       "title": "As Boys Grow",
