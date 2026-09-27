@@ -1,5 +1,5 @@
 {
-  "catalog_version": 1789869050,
+  "catalog_version": 1790474498,
   "items": [
     {
       "title": "About Bananas",
@@ -527,18 +527,18 @@
       "tmdb_id": 618
     },
     {
-      "title": "Boys Beware",
-      "type": "movie",
-      "archive_org_id": "boys_beware",
-      "year": 1961,
-      "tmdb_id": 44355
-    },
-    {
       "title": "Don't Be a Sucker",
       "type": "movie",
       "archive_org_id": "DontBeaS1947",
       "year": 1947,
       "tmdb_id": 429490
+    },
+    {
+      "title": "Boys Beware",
+      "type": "movie",
+      "archive_org_id": "boys_beware",
+      "year": 1961,
+      "tmdb_id": 44355
     },
     {
       "title": "As Boys Grow",
@@ -548,18 +548,18 @@
       "tmdb_id": 259989
     },
     {
-      "title": "The Ghoul",
-      "type": "movie",
-      "archive_org_id": "TheGhoul",
-      "year": 1933,
-      "tmdb_id": 28046
-    },
-    {
       "title": "Charlie Chaplin's \"The Count\"",
       "type": "movie",
       "archive_org_id": "CC_1916_09_04_TheCount",
       "year": 1916,
       "tmdb_id": 2079
+    },
+    {
+      "title": "The Ghoul",
+      "type": "movie",
+      "archive_org_id": "TheGhoul",
+      "year": 1933,
+      "tmdb_id": 28046
     },
     {
       "title": "The Iron Mask",
