@@ -1,5 +1,5 @@
 {
-  "catalog_version": 1790474498,
+  "catalog_version": 1791082733,
   "items": [
     {
       "title": "About Bananas",
@@ -401,18 +401,18 @@
       "tmdb_id": 17058
     },
     {
-      "title": "The Flying Deuces",
-      "type": "movie",
-      "archive_org_id": "TheFlyingDeuces",
-      "year": 1939,
-      "tmdb_id": 22999
-    },
-    {
       "title": "Meet John Doe",
       "type": "movie",
       "archive_org_id": "meet_john_doe",
       "year": 1941,
       "tmdb_id": 32574
+    },
+    {
+      "title": "The Flying Deuces",
+      "type": "movie",
+      "archive_org_id": "TheFlyingDeuces",
+      "year": 1939,
+      "tmdb_id": 22999
     },
     {
       "title": "Charlie Chaplin's \" The Pawnshop\"",
