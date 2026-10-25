@@ -1,5 +1,5 @@
 {
-  "catalog_version": 1792287659,
+  "catalog_version": 1792893234,
   "items": [
     {
       "title": "About Bananas",
@@ -174,7 +174,7 @@
       "type": "movie",
       "archive_org_id": "DuckandC1951",
       "year": 1951,
-      "tmdb_id": 1573744
+      "tmdb_id": 1790485
     },
     {
       "title": "Sita Sings the Blues",
@@ -387,18 +387,18 @@
       "tmdb_id": 43870
     },
     {
-      "title": "Scarlet Street",
-      "type": "movie",
-      "archive_org_id": "ScarletStreet",
-      "year": 1945,
-      "tmdb_id": 17058
-    },
-    {
       "title": "Royal Wedding",
       "type": "movie",
       "archive_org_id": "royal_wedding",
       "year": 1951,
       "tmdb_id": 18646
+    },
+    {
+      "title": "Scarlet Street",
+      "type": "movie",
+      "archive_org_id": "ScarletStreet",
+      "year": 1945,
+      "tmdb_id": 17058
     },
     {
       "title": "The Flying Deuces",
